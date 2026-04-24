@@ -1,0 +1,48 @@
+{
+  "eidolon": "skeleton",
+  "version": "0.1.0",
+  "methodology": "Skeleton",
+  "installed_at": "2026-04-24T12:00:00Z",
+  "target": "./.eidolons/skeleton",
+  "hosts_wired": ["claude-code", "copilot"],
+  "files_written": [
+    {
+      "path": "./.eidolons/skeleton/agent.md",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "entry-point",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/skeleton/AGENTS.md",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "role": "entry-point",
+      "mode": "created"
+    },
+    {
+      "path": ".claude/agents/skeleton.md",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "role": "dispatch",
+      "mode": "created"
+    },
+    {
+      "path": ".github/instructions/skeleton.instructions.md",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "role": "dispatch",
+      "mode": "created"
+    }
+  ],
+  "handoffs_declared": {
+    "upstream": [],
+    "downstream": []
+  },
+  "token_budget": {
+    "entry": 420,
+    "working_set_target": 1000
+  },
+  "security": {
+    "reads_repo": true,
+    "reads_network": false,
+    "writes_repo": false,
+    "persists": []
+  }
+}

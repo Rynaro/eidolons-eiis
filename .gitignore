@@ -1,0 +1,12 @@
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Test scratch
+/tmp-*
+*.bak
+
+# bats output
+.bats-tmp/

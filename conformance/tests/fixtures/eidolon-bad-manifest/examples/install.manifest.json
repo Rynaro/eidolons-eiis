@@ -1,0 +1,15 @@
+{
+  "eidolon": "bad-manifest",
+  "version": "0.1.0",
+  "methodology": "BadManifest",
+  "installed_at": "2026-04-24T12:00:00Z",
+  "target": "./.eidolons/bad-manifest",
+  "files_written": [
+    {
+      "path": "./.eidolons/bad-manifest/agent.md",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "entry-point",
+      "mode": "created"
+    }
+  ]
+}

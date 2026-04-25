@@ -1,0 +1,71 @@
+# Reusable GitHub Actions workflow for an EIIS-conformant Eidolon repo.
+#
+# Drop this into your Eidolon's .github/workflows/eiis-conformance.yml and
+# adjust the EIIS_VERSION pin if needed.
+#
+# What it does:
+#   1. Checks out the Eidolon repo.
+#   2. Clones Rynaro/eidolons-eiis at the pinned tag.
+#   3. Runs bash conformance/check.sh against the Eidolon repo.
+#   4. Asserts exit code is 0 or 4 (MUSTs pass; warn-only tolerated).
+#   5. Smoke-tests install.sh --help and --version (§2.5, §2.6).
+
+name: EIIS conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Eidolon repo
+        uses: actions/checkout@v4
+
+      - name: Install jq (apt-get; ubuntu-latest already has it usually)
+        run: |
+          if ! command -v jq >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y jq
+          fi
+
+      - name: Clone EIIS at pinned tag
+        env:
+          EIIS_VERSION: v1.0.0
+        run: |
+          git clone --depth=1 --branch "$EIIS_VERSION" \
+            https://github.com/Rynaro/eidolons-eiis.git /tmp/eiis
+
+      - name: Run conformance checker
+        run: |
+          set -e
+          bash /tmp/eiis/conformance/check.sh "$GITHUB_WORKSPACE"
+          rc=$?
+          if [ "$rc" -eq 0 ] || [ "$rc" -eq 4 ]; then
+            echo "EIIS conformance: passed (exit $rc)"
+            exit 0
+          else
+            echo "EIIS conformance: FAILED (exit $rc)"
+            exit "$rc"
+          fi
+
+      - name: Install help / version smoke
+        run: |
+          bash install.sh --help >/dev/null
+          bash install.sh --version >/dev/null
+
+      - name: Idempotency smoke (install twice; only manifest installed_at differs)
+        run: |
+          mkdir -p /tmp/install-target
+          bash install.sh --target /tmp/install-target/.eidolons/test \
+            --hosts none --non-interactive --force >/dev/null
+          find /tmp/install-target -type f ! -name install.manifest.json \
+            | sort | xargs sha256sum > /tmp/sums-1.txt
+          bash install.sh --target /tmp/install-target/.eidolons/test \
+            --hosts none --non-interactive --force >/dev/null
+          find /tmp/install-target -type f ! -name install.manifest.json \
+            | sort | xargs sha256sum > /tmp/sums-2.txt
+          diff /tmp/sums-1.txt /tmp/sums-2.txt

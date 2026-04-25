@@ -1,0 +1,80 @@
+# Run the bats conformance suite on every push and PR.
+name: conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats and shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bats shellcheck jq
+
+      - name: shellcheck conformance scripts
+        run: |
+          find conformance templates -name '*.sh' -print0 \
+            | xargs -0 shellcheck -x -S error
+
+      - name: Validate JSON files
+        run: |
+          for f in $(find . -name '*.json' -not -path './.git/*'); do
+            jq empty "$f"
+          done
+
+      - name: SPEC.md symlink resolves to spec/eiis-1.0.md
+        run: |
+          test "$(readlink SPEC.md)" = "spec/eiis-1.0.md"
+
+      - name: EIIS_VERSION matches latest spec file
+        run: |
+          ver="$(cat EIIS_VERSION | tr -d '[:space:]')"
+          test -f "spec/eiis-${ver}.md"
+
+      - name: Run bats suite
+        run: |
+          bats conformance/tests/conformance.bats
+
+  self-check-skeleton:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Conformance check the skeleton template
+        run: |
+          bash conformance/check.sh templates/eidolon-skeleton
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "skeleton template did not exit 0 (got $rc)"
+            exit 1
+          fi
+
+      - name: Smoke-test skeleton install.sh
+        run: |
+          mkdir -p /tmp/skel-test
+          cd /tmp/skel-test
+          bash "$GITHUB_WORKSPACE/templates/eidolon-skeleton/install.sh" \
+            --target ./.eidolons/test --hosts none --non-interactive --force
+
+      - name: Idempotency: second run produces byte-identical output
+        run: |
+          cd /tmp/skel-test
+          find ./.eidolons/test -type f ! -name install.manifest.json \
+            | sort | xargs sha256sum > /tmp/run1.sums
+          bash "$GITHUB_WORKSPACE/templates/eidolon-skeleton/install.sh" \
+            --target ./.eidolons/test --hosts none --non-interactive --force
+          find ./.eidolons/test -type f ! -name install.manifest.json \
+            | sort | xargs sha256sum > /tmp/run2.sums
+          diff /tmp/run1.sums /tmp/run2.sums

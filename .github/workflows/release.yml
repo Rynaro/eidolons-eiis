@@ -1,0 +1,47 @@
+# Tag-driven release: produces a GitHub Release with the spec file and
+# a tarball of the conformance checker.
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Verify EIIS_VERSION matches tag
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          eiis_ver="$(cat EIIS_VERSION | tr -d '[:space:]')"
+          # tag = X.Y.Z; eiis_ver = X.Y. They should agree on MAJOR.MINOR.
+          tag_xy="$(echo "$tag" | awk -F. '{print $1"."$2}')"
+          if [ "$tag_xy" != "$eiis_ver" ]; then
+            echo "Tag MAJOR.MINOR ($tag_xy) does not match EIIS_VERSION ($eiis_ver)" >&2
+            exit 1
+          fi
+
+      - name: Bundle conformance checker
+        run: |
+          tar czf eiis-conformance.tar.gz conformance/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title "$tag" \
+            --notes-file CHANGELOG.md \
+            "spec/eiis-1.0.md" \
+            "eiis-conformance.tar.gz"

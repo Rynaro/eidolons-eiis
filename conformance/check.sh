@@ -94,14 +94,14 @@ if [ -z "$TARGET_VERSION" ]; then
   TARGET_VERSION="1.0"
 fi
 
-# Currently the checker only knows about v1.0. Accept any 1.x for forward
-# compat (a v1.1 Eidolon should still pass v1.0 checks; v1.1-only checks
-# will be added when the v1.1 spec ships).
+# The checker knows about v1.0 (baseline) and v1.1 (Codex addendum).
+# v1.0 Eidolons skip the §4.5 codex gates; v1.1 Eidolons run them.
+# Any future 1.x version is tolerated and runs v1.1 gates as the closest
+# known set.
 case "$TARGET_VERSION" in
-  1.0|1.0.*|1) : ;;
-  1.*)
-    : "tolerated; running v1.0 gates"
-    ;;
+  1.0|1.0.*|1)   : "v1.0 baseline" ;;
+  1.1|1.1.*)     : "v1.1 (Codex addendum)" ;;
+  1.*)           : "future 1.x; running v1.1 gates" ;;
   *)
     echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x)" >&2
     exit 1
@@ -144,6 +144,8 @@ fi
 . "$LIB_DIR/checks-markers.sh"
 # shellcheck source=lib/checks-idempotency.sh
 . "$LIB_DIR/checks-idempotency.sh"
+# shellcheck source=lib/checks-codex.sh
+. "$LIB_DIR/checks-codex.sh"
 
 # -- run checks ------------------------------------------------------------ #
 
@@ -152,6 +154,7 @@ eiis_check_flags        "$REPO_DIR_ABS"
 eiis_check_manifest     "$REPO_DIR_ABS"
 eiis_check_markers      "$REPO_DIR_ABS"
 eiis_check_idempotency  "$REPO_DIR_ABS"
+eiis_check_codex        "$REPO_DIR_ABS" "$TARGET_VERSION"
 
 # -- summarise ------------------------------------------------------------- #
 

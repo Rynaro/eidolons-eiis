@@ -37,6 +37,36 @@ setup() {
   [ "$status" -eq 2 ]
 }
 
+# --- v1.1 codex addendum (§4.5) ------------------------------------------- #
+
+@test "eidolon-codex-conformant fixture exits 0" {
+  run bash "$CHECK" "$FIXTURES/eidolon-codex-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *C1:conformant'
+  echo "$output" | grep -q "name='conformant'"
+}
+
+@test "eidolon-codex-bad-frontmatter fixture exits 2 (C3 fails on missing description)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-codex-bad-frontmatter"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *C3:conformant'
+}
+
+@test "v1.0-only fixtures still exit 0 (codex skipped)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-conformant"
+  [ "$status" -eq 0 ]
+  # C0 records the skip note for v1.0 targets.
+  echo "$output" | grep -q '\[OK\] *C0'
+  echo "$output" | grep -q 'codex checks skipped'
+}
+
+@test "--target-version 1.1 explicit on conformant v1.0 fixture runs codex (no .codex/ → ok)" {
+  run bash "$CHECK" --target-version 1.1 "$FIXTURES/eidolon-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *C0'
+  echo "$output" | grep -q '\.codex/agents/ not present'
+}
+
 # --- option parsing ------------------------------------------------------- #
 
 @test "--help exits 0" {

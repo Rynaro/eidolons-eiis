@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# {{METHODOLOGY}} installer — EIIS v1.0 conformant
+# {{METHODOLOGY}} installer — EIIS v1.1 conformant
 # Usage: bash install.sh [OPTIONS]
 set -u
 set -o pipefail
@@ -31,8 +31,8 @@ Install ${METHODOLOGY} v${EIDOLON_VERSION} into the current consumer project.
 
 Options:
   --target DIR            Target install dir (default: ${TARGET})
-  --hosts LIST            claude-code,copilot,cursor,opencode,all,auto,none
-                          (default: auto)
+  --hosts LIST            claude-code,copilot,cursor,opencode,codex,
+                          all,auto,none (default: auto)
   --shared-dispatch       Compose marker-bounded section in root AGENTS.md /
                           CLAUDE.md / .github/copilot-instructions.md.
   --no-shared-dispatch    Skip root composition (default).
@@ -43,8 +43,8 @@ Options:
   --version               Print Eidolon version and exit 0.
   -h, --help              Show this help and exit 0.
 
-EIIS v1.0 conformant. See:
-  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.0.md
+EIIS v1.1 conformant. See:
+  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.1.md
 EOF
 }
 
@@ -102,6 +102,12 @@ detect_hosts() {
   if [ -d ".github" ]; then detected="${detected}copilot,"; fi
   if [ -d ".cursor" ] || [ -f ".cursorrules" ]; then detected="${detected}cursor,"; fi
   if [ -d ".opencode" ]; then detected="${detected}opencode,"; fi
+  # Codex (EIIS v1.1 §4.5): .codex/ is the definitive Codex-only signal;
+  # AGENTS.md alone (without .github/) also indicates Codex.
+  if [ -d ".codex" ]; then detected="${detected}codex,"; fi
+  if [ -f "AGENTS.md" ] && [ ! -d ".github" ] && [ ! -d ".codex" ]; then
+    detected="${detected}codex,"
+  fi
   echo "${detected%,}"
 }
 
@@ -112,7 +118,7 @@ if [ "$HOSTS" = "auto" ]; then
     HOSTS="raw"
   fi
 elif [ "$HOSTS" = "all" ]; then
-  HOSTS="claude-code,copilot,cursor,opencode"
+  HOSTS="claude-code,copilot,cursor,opencode,codex"
 fi
 
 hosts_include() {
@@ -126,7 +132,7 @@ hosts_include() {
 IFS=',' read -ra _HOST_ARRAY <<< "$HOSTS"
 for _h in "${_HOST_ARRAY[@]}"; do
   case "$_h" in
-    claude-code|copilot|cursor|opencode|raw|none|"") : ;;
+    claude-code|copilot|cursor|opencode|codex|raw|none|"") : ;;
     *) echo "Invalid --hosts value: $_h" >&2; exit 2 ;;
   esac
 done
@@ -281,6 +287,14 @@ if [ "$MANIFEST_ONLY" != "true" ] && [ "$SHARED_DISPATCH" = "true" ]; then
   fi
 fi
 
+# EIIS v1.1 §4.1.0 — root AGENTS.md is co-owned by `copilot` and `codex`.
+# When `codex` is wired, we MUST write the marker block into root AGENTS.md
+# regardless of --shared-dispatch (Codex's primary instruction surface).
+if [ "$MANIFEST_ONLY" != "true" ] && [ "$SHARED_DISPATCH" != "true" ] \
+     && hosts_include "codex"; then
+  upsert_eidolon_block "AGENTS.md" "$SHARED_BLOCK" "dispatch"
+fi
+
 # --------------------------------------------------------------------------- #
 # Per-host dispatch files (filename namespace; EIIS §4.2)
 # --------------------------------------------------------------------------- #
@@ -331,6 +345,19 @@ description: \"${METHODOLOGY} methodology agent\"
 
 See \`${TARGET}/AGENTS.md\` for full rules."
 
+  # EIIS v1.1 §4.5 — Codex subagent file. Frontmatter contract:
+  # required `name` (slug) + `description`; optional `tools`, `model`.
+  # Source: https://developers.openai.com/codex/subagents
+  CODEX_AGENT="---
+name: ${EIDOLON_NAME}
+description: ${METHODOLOGY} methodology subagent for Codex.
+---
+
+# ${METHODOLOGY} — Codex subagent
+
+See \`${TARGET}/agent.md\` for the canonical methodology and
+\`${TARGET}/AGENTS.md\` for the full ruleset."
+
   if hosts_include "claude-code"; then
     write_per_host_dispatch ".claude/agents/${EIDOLON_NAME}.md" "$CLAUDE_AGENT"
   fi
@@ -342,6 +369,9 @@ See \`${TARGET}/AGENTS.md\` for full rules."
   fi
   if hosts_include "opencode"; then
     write_per_host_dispatch ".opencode/agents/${EIDOLON_NAME}.md" "$OPENCODE_AGENT"
+  fi
+  if hosts_include "codex"; then
+    write_per_host_dispatch ".codex/agents/${EIDOLON_NAME}.md" "$CODEX_AGENT"
   fi
 fi
 

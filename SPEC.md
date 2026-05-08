@@ -1,1 +1,1 @@
-spec/eiis-1.1.md
+spec/eiis-1.2.md

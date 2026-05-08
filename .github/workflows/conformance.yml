@@ -29,9 +29,10 @@ jobs:
             jq empty "$f"
           done
 
-      - name: SPEC.md symlink resolves to spec/eiis-1.0.md
+      - name: SPEC.md symlink resolves to current spec file
         run: |
-          test "$(readlink SPEC.md)" = "spec/eiis-1.0.md"
+          ver="$(cat EIIS_VERSION | tr -d '[:space:]')"
+          test "$(readlink SPEC.md)" = "spec/eiis-${ver}.md"
 
       - name: EIIS_VERSION matches latest spec file
         run: |
@@ -68,7 +69,7 @@ jobs:
           bash "$GITHUB_WORKSPACE/templates/eidolon-skeleton/install.sh" \
             --target ./.eidolons/test --hosts none --non-interactive --force
 
-      - name: Idempotency: second run produces byte-identical output
+      - name: "Idempotency: second run produces byte-identical output"
         run: |
           cd /tmp/skel-test
           find ./.eidolons/test -type f ! -name install.manifest.json \

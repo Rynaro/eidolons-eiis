@@ -8,6 +8,56 @@ document level.
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-05-08
+
+### Added
+
+- `spec/eiis-1.2.md` — additive minor release over v1.1. v1.0- and
+  v1.1-conformant Eidolons remain conformant under v1.2 without modification.
+- §4.6 — **ECL composition (v1.2+)**. Acknowledges the Eidolons Communication
+  Layer (`Rynaro/eidolons-ecl` v1.0.0, published 2026-05-07) as a composable
+  sibling standard. ECL governs wire-format and hand-off contracts for runtime
+  inter-Eidolon communication; EIIS governs the install contract. They compose
+  but do not overlap.
+  - §4.6.1 — An Eidolon repo **MAY** contain a top-level `ECL_VERSION` file
+    matching `^[0-9]+\.[0-9]+(\.[0-9]+)?$`, declaring the ECL spec version
+    it targets when emitting inter-Eidolon artefacts.
+  - §4.6.2 — If `ECL_VERSION` is present, an Eidolon that emits ECL envelopes
+    MUST satisfy the corresponding ECL spec version. (ECL conformance is
+    verified by the ECL checker, not EIIS.)
+  - §4.6.3 — An Eidolon SHALL NOT emit ECL envelopes without declaring
+    `ECL_VERSION`.
+  - §4.6.4 — `install.manifest.json` MAY include an `ecl_version_emitted`
+    string field; if present it MUST match `ECL_VERSION`.
+  - §4.6.5 — Conformance checker adds warn-only E0 (ECL_VERSION format) and
+    E1 (ecl_version_emitted ↔ ECL_VERSION match) gates for v1.2+ targets.
+- `conformance/lib/checks-ecl.sh` — new E-series checks (E0–E1) validating
+  `ECL_VERSION` format and manifest consistency under EIIS_VERSION 1.2+
+  targets. Both checks are warn-only; absence of `ECL_VERSION` is OK and
+  produces no output.
+- §3.7 — `ecl_version_emitted` added as an OPTIONAL manifest field.
+- §6.2.1 — Explicit backward-compatibility paragraph for v1.0/v1.1/v1.2.
+- §6.3 — E0 and E1 added to the promotion timeline table.
+- §7 — Non-goals bullet: EIIS does not define ECL semantics.
+- Citation 10 — ECL v1.0 at `Rynaro/eidolons-ecl`.
+- `ECL_VERSION` added to the MAY-contain table in §1.
+
+### Changed
+
+- `EIIS_VERSION` (root) bumped from `1.1` to `1.2`.
+- `SPEC.md` symlink repointed to `spec/eiis-1.2.md`.
+
+### Backward compatibility
+
+- v1.0- and v1.1-conformant Eidolons pass v1.2 conformance unchanged. The
+  ECL composition surface (§4.6) is entirely optional. Eidolons that emit no
+  ECL artefacts remain fully conformant with no modification required.
+- No new top-level files are required at the repo root. v1.2 is purely
+  additive at the file-set level. `ECL_VERSION` is an opt-in file.
+- Eidolons MAY add `ECL_VERSION` and MAY upgrade their
+  `install.manifest.json` to include `ecl_version_emitted` independently,
+  at any time, without a coordinated EIIS version bump.
+
 ## [1.1.0] — 2026-04-25
 
 ### Added
@@ -126,6 +176,7 @@ document level.
 - **Q.8** — Normative keywords use RFC 8174 (BCP 14); both RFC 2119 and
   RFC 8174 are cited.
 
-[Unreleased]: https://github.com/Rynaro/eidolons-eiis/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Rynaro/eidolons-eiis/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Rynaro/eidolons-eiis/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Rynaro/eidolons-eiis/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Rynaro/eidolons-eiis/releases/tag/v1.0.0

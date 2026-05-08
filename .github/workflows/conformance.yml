@@ -29,9 +29,10 @@ jobs:
             jq empty "$f"
           done
 
-      - name: SPEC.md symlink resolves to spec/eiis-1.0.md
+      - name: SPEC.md symlink resolves to current spec file
         run: |
-          test "$(readlink SPEC.md)" = "spec/eiis-1.0.md"
+          ver="$(cat EIIS_VERSION | tr -d '[:space:]')"
+          test "$(readlink SPEC.md)" = "spec/eiis-${ver}.md"
 
       - name: EIIS_VERSION matches latest spec file
         run: |

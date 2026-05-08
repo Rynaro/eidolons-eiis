@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v1.0](spec/eiis-1.0.md) (also reachable as
+- **Latest stable:** [EIIS v1.2](spec/eiis-1.2.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
@@ -16,8 +16,10 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-1.0.md`](spec/eiis-1.0.md). RFC 8174
-   (BCP 14) keywords; numbered §1–§7 sections; one file per minor version.
+1. **The normative spec** in [`spec/eiis-1.2.md`](spec/eiis-1.2.md) (latest
+   stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
+   minor version. Prior versions: [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
+   [`spec/eiis-1.0.md`](spec/eiis-1.0.md).
 2. **JSON Schemas** in [`schemas/`](schemas/) for the
    `install.manifest.json` contract.
 3. **A standalone bash conformance checker** in
@@ -73,28 +75,44 @@ See [`conformance/README.md`](conformance/README.md) for details.
 
 ## Versioning
 
-EIIS uses SemVer at the document level. v1.0 is the first stable. v1.1 is
-expected to add Codex (`codex` host) as an additive minor. v1.2 promotes the
-warn-only drifts (D-3, D-6) to fail-only.
+EIIS uses SemVer at the document level.
 
-See [§6 of the spec](spec/eiis-1.0.md#6--versioning--compatibility) for the
+- **v1.0** — first stable (2026-04-24).
+- **v1.1** — additive: Codex (`codex` host) recognised; §4.5 Codex subagent
+  contract (2026-04-25). v1.0 Eidolons remain conformant.
+- **v1.2** — additive: ECL composition clause (§4.6); OPTIONAL `ECL_VERSION`
+  file; warn-only E0/E1 conformance gates (2026-05-08). v1.1 Eidolons remain
+  conformant. This is the current stable.
+- **v1.3** — expected to revisit drift register promotions (D-3, D-6 to
+  hard-fail) and any ECL gate promotions warranted by adoption data.
+
+See [§6 of the spec](spec/eiis-1.2.md#6--versioning--compatibility) for the
 full promotion timeline.
 
 ## Relationship to other repos
 
+**Relationship to ECL:** [ECL (`Rynaro/eidolons-ecl`)](https://github.com/Rynaro/eidolons-ecl)
+is a sibling standard at Layer 1 governing the wire format and hand-off
+contract for runtime inter-Eidolon communication. EIIS and ECL compose but do
+not overlap: EIIS is the install contract; ECL is the runtime hand-off
+contract. See [§4.6 of the spec](spec/eiis-1.2.md#46--ecl-composition-v12).
+
 ```
-┌──────────────────────────┐
-│  EIIS  (this repo)       │  Layer 1 — the install contract.
-└────────────┬─────────────┘
-             │ satisfied by
-             ▼
-┌──────────────────────────┐
-│  Eidolon repos           │  Layer 2 — ATLAS, SPECTRA, APIVR-Δ,
-│  (Rynaro/{ATLAS,…})      │  IDG, FORGE, VIGIL. Each has its own
-│                          │  install.sh that satisfies §2.
-└────────────┬─────────────┘
-             │ orchestrated by
-             ▼
+┌──────────────────────────┐  ┌──────────────────────────┐
+│  EIIS  (this repo)       │  │  ECL  (Rynaro/eidolons-  │
+│  install contract        │  │  ecl) hand-off contract  │
+│                          │  │                          │
+│  Layer 1a                │  │  Layer 1b (sibling)      │
+└────────────┬─────────────┘  └────────────┬─────────────┘
+             │ satisfied by                │ emitted by
+             ▼                             ▼
+┌──────────────────────────────────────────────────────────┐
+│  Eidolon repos  (Rynaro/{ATLAS, SPECTRA, APIVR-Δ, …})   │
+│  Layer 2 — each install.sh satisfies EIIS §2;            │
+│  each emitter satisfies ECL when ECL_VERSION is present. │
+└────────────────────────────┬─────────────────────────────┘
+                             │ orchestrated by
+                             ▼
 ┌──────────────────────────┐
 │  Eidolons nexus          │  Layer 3 — Rynaro/eidolons. Vendors a
 │  (Rynaro/eidolons)       │  copy of EIIS and uses the conformance

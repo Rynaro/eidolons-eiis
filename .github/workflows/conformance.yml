@@ -68,7 +68,7 @@ jobs:
           bash "$GITHUB_WORKSPACE/templates/eidolon-skeleton/install.sh" \
             --target ./.eidolons/test --hosts none --non-interactive --force
 
-      - name: Idempotency: second run produces byte-identical output
+      - name: "Idempotency: second run produces byte-identical output"
         run: |
           cd /tmp/skel-test
           find ./.eidolons/test -type f ! -name install.manifest.json \

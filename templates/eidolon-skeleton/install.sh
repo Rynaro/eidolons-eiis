@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# {{METHODOLOGY}} installer — EIIS v1.1 conformant
+# {{METHODOLOGY}} installer — EIIS v1.3 conformant
 # Usage: bash install.sh [OPTIONS]
 set -u
 set -o pipefail
 
 EIDOLON_NAME="{{EIDOLON_NAME}}"
+EIDOLON_SLUG="{{EIDOLON_SLUG}}"   # lowercase slug, e.g. "my-eidolon" (same as EIDOLON_NAME unless it differs)
 EIDOLON_VERSION="{{VERSION}}"
 METHODOLOGY="{{METHODOLOGY}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -43,8 +44,8 @@ Options:
   --version               Print Eidolon version and exit 0.
   -h, --help              Show this help and exit 0.
 
-EIIS v1.1 conformant. See:
-  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.1.md
+EIIS v1.3 conformant. See:
+  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.3.md
 EOF
 }
 
@@ -186,10 +187,59 @@ copy_file() {
   fi
 }
 
+# --------------------------------------------------------------------------- #
+# wire_skill — EIIS v1.3 §4.2.4 dual-write helper
+#
+# Copies a skill file to:
+#   - source-of-truth: ${TARGET}/skills/<skill>.md
+#   - host vendor copy: .claude/skills/${EIDOLON_SLUG}-<skill>/SKILL.md
+#     (only when claude-code is wired)
+#
+# Bash 3.2 compatible. See EIIS v1.3 Appendix A for the canonical reference.
+# --------------------------------------------------------------------------- #
+wire_skill() {
+  local skill="$1"
+  local src="${SCRIPT_DIR}/skills/${skill}.md"
+  local dst_src="${TARGET}/skills/${skill}.md"
+  local dst_vendor=".claude/skills/${EIDOLON_SLUG}-${skill}/SKILL.md"
+
+  if [ ! -f "${src}" ]; then
+    echo "ERROR: skill source not found: ${src}" >&2
+    exit 1
+  fi
+
+  # Source-of-truth write (host-independent).
+  do_action "mkdir -p $(dirname "${dst_src}")" mkdir -p "$(dirname "${dst_src}")"
+  do_action "copy skills/${skill}.md -> ${dst_src}" cp "${src}" "${dst_src}"
+  if [ "$DRY_RUN" != "true" ] && [ -f "${dst_src}" ]; then
+    local chk_src
+    chk_src="$(sha256_file "${dst_src}")"
+    FILES_WRITTEN+=("{\"path\":\"${dst_src}\",\"sha256\":\"${chk_src}\",\"role\":\"skill\",\"mode\":\"created\"}")
+  fi
+
+  # Vendor copy (claude-code host only, per EIIS v1.3 §4.2.4.4).
+  if hosts_include "claude-code"; then
+    do_action "mkdir -p $(dirname "${dst_vendor}")" mkdir -p "$(dirname "${dst_vendor}")"
+    do_action "copy skills/${skill}.md -> ${dst_vendor}" cp "${src}" "${dst_vendor}"
+    if [ "$DRY_RUN" != "true" ] && [ -f "${dst_vendor}" ]; then
+      local chk_vendor
+      chk_vendor="$(sha256_file "${dst_vendor}")"
+      FILES_WRITTEN+=("{\"path\":\"${dst_vendor}\",\"sha256\":\"${chk_vendor}\",\"role\":\"skill\",\"mode\":\"created\"}")
+    fi
+  fi
+}
+
 if [ "$MANIFEST_ONLY" != "true" ]; then
   copy_file "agent.md"   "${TARGET}/agent.md"   "entry-point"
   copy_file "AGENTS.md"  "${TARGET}/AGENTS.md"  "entry-point"
   copy_file "CLAUDE.md"  "${TARGET}/CLAUDE.md"  "entry-point"
+
+  # EIIS v1.3 §1.8 — canonical full-spec file MUST be named SPEC.md.
+  copy_file "SPEC.md"    "${TARGET}/SPEC.md"    "spec"
+
+  # EIIS v1.3 §4.2.4 — dual-write each skill. Replace with your skill slugs:
+  # wire_skill "planning"
+  # wire_skill "verification"
 fi
 
 # --------------------------------------------------------------------------- #

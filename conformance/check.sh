@@ -103,7 +103,8 @@ case "$TARGET_VERSION" in
   1.0|1.0.*|1)   : "v1.0 baseline" ;;
   1.1|1.1.*)     : "v1.1 (Codex addendum)" ;;
   1.2|1.2.*)     : "v1.2 (ECL composition clause)" ;;
-  1.*)           : "future 1.x; running v1.2 gates" ;;
+  1.3|1.3.*)     : "v1.3 (canonical SPEC.md + skills dual-write)" ;;
+  1.*)           : "future 1.x; running v1.3 gates" ;;
   *)
     echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x)" >&2
     exit 1
@@ -150,16 +151,19 @@ fi
 . "$LIB_DIR/checks-codex.sh"
 # shellcheck source=lib/checks-ecl.sh
 . "$LIB_DIR/checks-ecl.sh"
+# shellcheck source=lib/checks-spec-skills.sh
+. "$LIB_DIR/checks-spec-skills.sh"
 
 # -- run checks ------------------------------------------------------------ #
 
-eiis_check_layout       "$REPO_DIR_ABS"
-eiis_check_flags        "$REPO_DIR_ABS"
-eiis_check_manifest     "$REPO_DIR_ABS"
-eiis_check_markers      "$REPO_DIR_ABS"
-eiis_check_idempotency  "$REPO_DIR_ABS"
-eiis_check_codex        "$REPO_DIR_ABS" "$TARGET_VERSION"
-eiis_check_ecl          "$REPO_DIR_ABS" "$TARGET_VERSION"
+eiis_check_layout        "$REPO_DIR_ABS"
+eiis_check_flags         "$REPO_DIR_ABS"
+eiis_check_manifest      "$REPO_DIR_ABS"
+eiis_check_markers       "$REPO_DIR_ABS"
+eiis_check_idempotency   "$REPO_DIR_ABS"
+eiis_check_codex         "$REPO_DIR_ABS" "$TARGET_VERSION"
+eiis_check_ecl           "$REPO_DIR_ABS" "$TARGET_VERSION"
+eiis_check_spec_skills   "$REPO_DIR_ABS" "$TARGET_VERSION"
 
 # -- summarise ------------------------------------------------------------- #
 

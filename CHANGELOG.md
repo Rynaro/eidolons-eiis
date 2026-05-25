@@ -8,6 +8,78 @@ document level.
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-05-25
+
+### Added
+
+- `spec/eiis-1.3.md` — additive minor release over v1.2. v1.0-, v1.1-, and
+  v1.2-conformant Eidolons remain conformant under v1.3 without modification.
+- §1.8 — **Canonical full-spec filename (v1.3+)**. Eidolons declaring
+  `EIIS_VERSION = 1.3` MUST write their full methodology spec at exactly
+  `<target>/SPEC.md`. A `files_written[]` entry with `role: "spec"` whose
+  basename is not `SPEC.md` is a v1.3 conformance violation (§1.8.2). Exactly
+  one such entry per install is required (§1.8.3). Warn-only through
+  2027-04-24 for Eidolons declaring `EIIS_VERSION ≤ 1.2` (§1.8.5).
+- §4.2.4 — **Skills dual-write (v1.3+)**. An Eidolon that ships skill files
+  MUST write each skill at both:
+  - `<target>/skills/<skill>.md` — flat source-of-truth (host-independent).
+  - `.claude/skills/<eidolon>-<skill>/SKILL.md` — Claude Code vendor copy
+    (only when `claude-code` is in `--hosts`).
+  Both files MUST be byte-identical at write time (§4.2.4.2). The v1.2
+  subdir layout (`<skill>/SKILL.md`) is deprecated for v1.3+ Eidolons
+  (§4.2.4.3). Warn-only for `EIIS_VERSION ≤ 1.2` (§4.2.4.6).
+- §3.7 — Two new optional manifest fields (schema-optional;
+  conformance-required at `EIIS_VERSION ≥ 1.3`):
+  - `spec_file` — canonical full-spec path pointer
+    (`^\.eidolons/[a-z][a-z0-9-]*/SPEC\.md$`).
+  - `skills[]` — per-skill dual-write record (name, source_path,
+    source_sha256, optional vendor_path / vendor_sha256).
+- `schemas/install.manifest.v1.json` — three additive schema additions:
+  - `spec_file` optional string field with pattern validation.
+  - `skills` optional array field with per-entry shape validation.
+  - `ecl_version_emitted` optional string field (previously documented in
+    §3.7 but missing from the schema; backfilled from v1.2).
+- `conformance/lib/checks-spec-skills.sh` — new S- and K-series checks:
+  - **S1** — `role: "spec"` entry basename is `SPEC.md` (MUST-fail ≥ 1.3).
+  - **S2** — `spec_file` field present and pattern-valid (MUST-fail ≥ 1.3).
+  - **K1** — `skills[]` `source_path` uses flat layout (MUST-fail ≥ 1.3).
+  - **K2** — `vendor_sha256` equals `source_sha256` when present
+    (MUST-fail ≥ 1.3).
+  - **K3** — `vendor_path` present when `claude-code` in `hosts_wired` and
+    skills exist (WARN, all versions).
+- `conformance/tests/fixtures/eidolon-v13-conformant/` — new fixture with
+  `spec_file`, `skills[]`, and `role: "spec"` path ending in `SPEC.md`.
+  Exits 0 on `check.sh`.
+- `conformance/tests/fixtures/eidolon-v13-no-specfile/` — new fixture at
+  `EIIS_VERSION = 1.3` with no `spec_file` and no `role: "spec"` entry.
+  Exits 2 on `check.sh` (S1 + S2 MUST-fail).
+- `conformance/tests/conformance.bats` — 5 new tests covering v1.3 gates
+  and backward compatibility.
+- Appendix A in `spec/eiis-1.3.md` — non-normative `wire_skill` reference
+  implementation (bash 3.2 compatible copy-paste snippet for Eidolon authors).
+- Appendix B in `spec/eiis-1.3.md` — changes-from-v1.2 summary table.
+- `templates/eidolon-skeleton/SPEC.md` — placeholder canonical spec file.
+- `templates/eidolon-skeleton/install.sh` — updated with `wire_skill`
+  helper and SPEC.md copy pattern.
+
+### Changed
+
+- §4.2.3 (amended) — `.claude/skills/` write promoted from **MAY** to **MUST**
+  for v1.3-conformant Eidolons when `claude-code` is wired. Cursor/Codex/
+  OpenCode vendor-copy paths remain **MAY** (out of scope for v1.3).
+- `conformance/check.sh` — recognises `1.3` (and `1.3.x`) as a known target
+  version; wires `eiis_check_spec_skills` for S- and K-series gate execution.
+- `EIIS_VERSION` (root) bumped from `1.2` to `1.3`.
+- `SPEC.md` symlink repointed to `spec/eiis-1.3.md`.
+- `templates/eidolon-skeleton/EIIS_VERSION` bumped from `1.1` to `1.3`.
+
+### Compatibility
+
+- v1.0-, v1.1-, and v1.2-conformant Eidolons pass v1.3 conformance unchanged.
+  The new MUSTs (§1.8 and §4.2.4) bind only when `EIIS_VERSION ≥ 1.3`. No
+  existing Eidolon that has not opted in by bumping its `EIIS_VERSION` to `1.3`
+  is affected. Migration is additive and per-repo.
+
 ## [1.2.0] — 2026-05-08
 
 ### Added
@@ -176,7 +248,8 @@ document level.
 - **Q.8** — Normative keywords use RFC 8174 (BCP 14); both RFC 2119 and
   RFC 8174 are cited.
 
-[Unreleased]: https://github.com/Rynaro/eidolons-eiis/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Rynaro/eidolons-eiis/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Rynaro/eidolons-eiis/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Rynaro/eidolons-eiis/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Rynaro/eidolons-eiis/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Rynaro/eidolons-eiis/releases/tag/v1.0.0

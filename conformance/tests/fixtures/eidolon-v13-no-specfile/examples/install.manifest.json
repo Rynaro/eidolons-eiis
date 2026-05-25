@@ -2,10 +2,9 @@
   "eidolon": "my-eidolon",
   "version": "0.1.0",
   "methodology": "MyEidolon",
-  "installed_at": "2026-04-24T12:00:00Z",
+  "installed_at": "2026-05-25T12:00:00Z",
   "target": "./.eidolons/my-eidolon",
   "hosts_wired": ["claude-code"],
-  "spec_file": ".eidolons/my-eidolon/SPEC.md",
   "files_written": [
     {
       "path": "./.eidolons/my-eidolon/agent.md",
@@ -17,12 +16,6 @@
       "path": ".claude/agents/my-eidolon.md",
       "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "role": "dispatch",
-      "mode": "created"
-    },
-    {
-      "path": ".eidolons/my-eidolon/SPEC.md",
-      "sha256": "dad69201bf8e8e4f702af090ed4da713a2d3087da221ee1db615c73ee7f3b090",
-      "role": "spec",
       "mode": "created"
     }
   ],

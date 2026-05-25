@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v1.2](spec/eiis-1.2.md) (also reachable as
+- **Latest stable:** [EIIS v1.3](spec/eiis-1.3.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
@@ -16,9 +16,10 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-1.2.md`](spec/eiis-1.2.md) (latest
+1. **The normative spec** in [`spec/eiis-1.3.md`](spec/eiis-1.3.md) (latest
    stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
-   minor version. Prior versions: [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
+   minor version. Prior versions: [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
+   [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
    [`spec/eiis-1.0.md`](spec/eiis-1.0.md).
 2. **JSON Schemas** in [`schemas/`](schemas/) for the
    `install.manifest.json` contract.
@@ -82,11 +83,13 @@ EIIS uses SemVer at the document level.
   contract (2026-04-25). v1.0 Eidolons remain conformant.
 - **v1.2** — additive: ECL composition clause (§4.6); OPTIONAL `ECL_VERSION`
   file; warn-only E0/E1 conformance gates (2026-05-08). v1.1 Eidolons remain
-  conformant. This is the current stable.
-- **v1.3** — expected to revisit drift register promotions (D-3, D-6 to
-  hard-fail) and any ECL gate promotions warranted by adoption data.
+  conformant.
+- **v1.3** — additive: canonical full-spec filename (`SPEC.md`, §1.8); skills
+  dual-write (flat source-of-truth + Claude Code vendor copy, §4.2.4); new
+  manifest fields `spec_file` and `skills[]`; S1/S2/K1-K3 conformance gates
+  (2026-05-25). v1.2 Eidolons remain conformant. This is the current stable.
 
-See [§6 of the spec](spec/eiis-1.2.md#6--versioning--compatibility) for the
+See [§6 of the spec](spec/eiis-1.3.md#6--versioning--compatibility) for the
 full promotion timeline.
 
 ## Relationship to other repos
@@ -95,7 +98,7 @@ full promotion timeline.
 is a sibling standard at Layer 1 governing the wire format and hand-off
 contract for runtime inter-Eidolon communication. EIIS and ECL compose but do
 not overlap: EIIS is the install contract; ECL is the runtime hand-off
-contract. See [§4.6 of the spec](spec/eiis-1.2.md#46--ecl-composition-v12).
+contract. See [§4.6 of the spec](spec/eiis-1.3.md#46--ecl-composition-v12).
 
 ```
 ┌──────────────────────────┐  ┌──────────────────────────┐

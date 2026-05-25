@@ -153,3 +153,39 @@ setup() {
   [ "$status" -eq 2 ]
   echo "$output" | grep -q 'D-4'
 }
+
+# --- v1.3 SPEC.md + skills dual-write gates (§1.8, §4.2.4) --------------- #
+
+@test "eidolon-v13-conformant fixture exits 0 (S1, S2, K-series all pass)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v13-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *S1'
+  echo "$output" | grep -q '\[OK\] *S2'
+  echo "$output" | grep -q '\[OK\] *K1'
+  echo "$output" | grep -q '\[OK\] *K2'
+}
+
+@test "eidolon-v13-no-specfile fixture exits 2 (S1 and S2 fail at v1.3)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v13-no-specfile"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *S1'
+  echo "$output" | grep -q '\[FAIL\] *S2'
+}
+
+@test "v1.2 target with missing spec entry exits 0 (S1 ok, not FAIL)" {
+  run bash "$CHECK" --target-version 1.2 "$FIXTURES/eidolon-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *S1'
+}
+
+@test "v1.3 target with spec_file present passes S2" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v13-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q 'S2:spec-file'
+}
+
+@test "--target-version 1.3 explicit with no-specfile manifest fails S2" {
+  run bash "$CHECK" --target-version 1.3 "$FIXTURES/eidolon-v13-no-specfile"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q 'S2:spec-file-missing'
+}

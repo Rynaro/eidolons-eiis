@@ -1,0 +1,54 @@
+{
+  "eidolon": "my-eidolon",
+  "version": "0.1.0",
+  "methodology": "MyEidolon",
+  "installed_at": "2026-05-25T12:00:00Z",
+  "target": "./.eidolons/my-eidolon",
+  "hosts_wired": ["claude-code"],
+  "spec_file": ".eidolons/my-eidolon/SPEC.md",
+  "files_written": [
+    {
+      "path": "./.eidolons/my-eidolon/agent.md",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "entry-point",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/SPEC.md",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "spec",
+      "mode": "created"
+    },
+    {
+      "path": ".claude/agents/my-eidolon.md",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "role": "dispatch",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/skills/planning.md",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "role": "skill",
+      "mode": "created"
+    },
+    {
+      "path": ".claude/skills/my-eidolon-planning/SKILL.md",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "role": "skill",
+      "mode": "created"
+    }
+  ],
+  "skills": [
+    {
+      "name": "planning",
+      "source_path": ".eidolons/my-eidolon/skills/planning.md",
+      "source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "vendor_path": ".claude/skills/my-eidolon-planning/SKILL.md",
+      "vendor_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "token_budget": {
+    "entry": 420,
+    "working_set_target": 1000
+  }
+}

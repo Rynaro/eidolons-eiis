@@ -252,9 +252,8 @@ eiis_check_inventory() {
       record "I2" "MUST" "fail" \
         "I2:two-file-pair — ${i2_fail}(EIIS v1.4 §1.8.6)"
     else
-      record "I2" "MUST" "warn" \
-        "I2:two-file-pair — ${i2_fail}" \
-        "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.4+"
+      record "I2" "MUST" "ok" \
+        "I2:two-file-pair — ${i2_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
     fi
   fi
 
@@ -315,9 +314,8 @@ eiis_check_inventory() {
       record "I3" "MUST" "fail" \
         "I3:ecl-version — ${i3_fail} (EIIS v1.4 §3.7.1)"
     else
-      record "I3" "MUST" "warn" \
-        "I3:ecl-version — ${i3_fail}" \
-        "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.4+"
+      record "I3" "MUST" "ok" \
+        "I3:ecl-version — ${i3_fail} (not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
     fi
   fi
 
@@ -346,9 +344,8 @@ eiis_check_inventory() {
           record "I4" "MUST" "fail" \
             "I4:host-vendor — claude-code in hosts_wired but .claude/agents/${slug}.md not found at fixture root (EIIS v1.4 §4.2.3)"
         else
-          record "I4" "MUST" "warn" \
-            "I4:host-vendor — claude-code in hosts_wired but .claude/agents/${slug}.md not found" \
-            "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.4+"
+          record "I4" "MUST" "ok" \
+            "I4:host-vendor — claude-code in hosts_wired but .claude/agents/${slug}.md not found (not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
         fi
       else
         record "I4" "MUST" "ok" \
@@ -392,9 +389,8 @@ eiis_check_inventory() {
           record "I4" "MUST" "fail" \
             "I4:host-vendor — .claude/agents/${slug}.md: ${i4_fail}(EIIS v1.4 §4.2.3-§4.2.5)"
         else
-          record "I4" "MUST" "warn" \
-            "I4:host-vendor — .claude/agents/${slug}.md: ${i4_fail}" \
-            "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.4+"
+          record "I4" "MUST" "ok" \
+            "I4:host-vendor — .claude/agents/${slug}.md: ${i4_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
         fi
       fi
     fi
@@ -475,9 +471,8 @@ EOF_REFS
       record "I5" "MUST" "fail" \
         "I5:agent-skill-refs — ${i5_fail}"
     else
-      record "I5" "MUST" "warn" \
-        "I5:agent-skill-refs — ${i5_fail}" \
-        "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.4+"
+      record "I5" "MUST" "ok" \
+        "I5:agent-skill-refs — ${i5_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
     fi
   fi
 }

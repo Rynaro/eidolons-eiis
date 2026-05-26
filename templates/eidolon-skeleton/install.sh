@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# {{METHODOLOGY}} installer — EIIS v1.3 conformant
+# {{METHODOLOGY}} installer — EIIS v1.4 conformant
 # Usage: bash install.sh [OPTIONS]
 set -u
 set -o pipefail
@@ -44,8 +44,8 @@ Options:
   --version               Print Eidolon version and exit 0.
   -h, --help              Show this help and exit 0.
 
-EIIS v1.3 conformant. See:
-  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.3.md
+EIIS v1.4 conformant. See:
+  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-1.4.md
 EOF
 }
 
@@ -166,6 +166,8 @@ log "Hosts: ${HOSTS}"
 # Directory creation
 # --------------------------------------------------------------------------- #
 FILES_WRITTEN=()
+# FILES_WRITTEN_PATHS tracks target-relative paths for canonical_inventory_sweep.
+FILES_WRITTEN_PATHS=()
 
 maybe_mkdir() {
   do_action "mkdir -p $1" mkdir -p "$1"
@@ -184,7 +186,46 @@ copy_file() {
     local chk
     chk="$(sha256_file "${dst}")"
     FILES_WRITTEN+=("{\"path\":\"${dst}\",\"sha256\":\"${chk}\",\"role\":\"${role}\",\"mode\":\"created\"}")
+    # Track target-relative path for canonical_inventory_sweep (EIIS v1.4 §6.X).
+    local rel="${dst#${TARGET}/}"
+    FILES_WRITTEN_PATHS+=("${rel}")
   fi
+}
+
+# --------------------------------------------------------------------------- #
+# canonical_inventory_sweep — EIIS v1.4 §6.X
+#
+# Remove every file under <target>/ that is NOT in FILES_WRITTEN_PATHS.
+# Call AFTER all writes, BEFORE writing install.manifest.json.
+# Bash 3.2 compatible: no associative arrays, no readarray.
+# --------------------------------------------------------------------------- #
+canonical_inventory_sweep() {
+  local target="$1"
+  local file_rel found known
+
+  if [ -z "${target}" ] || [ ! -d "${target}" ]; then
+    return 0
+  fi
+
+  find "${target}" -type f -print0 | while IFS= read -r -d '' file; do
+    file_rel="${file#${target}/}"
+    found=0
+    for known in "${FILES_WRITTEN_PATHS[@]}"; do
+      case "${known}" in
+        *"/${file_rel}"|"${file_rel}")
+          found=1
+          break
+          ;;
+      esac
+    done
+    if [ "${found}" -eq 0 ]; then
+      rm -f "${file}"
+      log "sweep: removed non-whitelisted file: ${file}"
+    fi
+  done
+
+  find "${target}" -mindepth 1 -type d -empty -delete 2>/dev/null || true
+  return 0
 }
 
 # --------------------------------------------------------------------------- #
@@ -230,16 +271,25 @@ wire_skill() {
 }
 
 if [ "$MANIFEST_ONLY" != "true" ]; then
-  copy_file "agent.md"   "${TARGET}/agent.md"   "entry-point"
-  copy_file "AGENTS.md"  "${TARGET}/AGENTS.md"  "entry-point"
-  copy_file "CLAUDE.md"  "${TARGET}/CLAUDE.md"  "entry-point"
+  # EIIS v1.4 §1.8.6 — agent.md MUST use role "agent-profile".
+  copy_file "agent.md"   "${TARGET}/agent.md"   "agent-profile"
 
-  # EIIS v1.3 §1.8 — canonical full-spec file MUST be named SPEC.md.
+  # EIIS v1.3 §1.8 / v1.4 §1.9 — canonical full-spec file MUST be named SPEC.md.
   copy_file "SPEC.md"    "${TARGET}/SPEC.md"    "spec"
+
+  # EIIS v1.4 §3.7.1 — if ECL_VERSION exists at source root, copy it.
+  # Remove this block if your Eidolon does not participate in ECL.
+  if [ -f "${SCRIPT_DIR}/ECL_VERSION" ]; then
+    copy_file "ECL_VERSION" "${TARGET}/ECL_VERSION" "ecl-version"
+  fi
 
   # EIIS v1.3 §4.2.4 — dual-write each skill. Replace with your skill slugs:
   # wire_skill "planning"
   # wire_skill "verification"
+
+  # EIIS v1.4 §6.X — sweep non-whitelisted files from install target.
+  # Call AFTER all writes but BEFORE manifest is written.
+  canonical_inventory_sweep "${TARGET}"
 fi
 
 # --------------------------------------------------------------------------- #
@@ -363,16 +413,21 @@ write_per_host_dispatch() {
 }
 
 if [ "$MANIFEST_ONLY" != "true" ]; then
+  # EIIS v1.4 §4.2.3-§4.2.5 — claude-code body contract:
+  # MUST reference both agent.md (P0) and SPEC.md (deep spec).
+  # MUST NOT reference legacy spec filenames or subdir-skill paths.
   CLAUDE_AGENT="---
-name: ${EIDOLON_NAME}
+name: ${EIDOLON_SLUG}
 description: ${METHODOLOGY} methodology agent.
-tools: Read, Grep, Glob
+model: sonnet
 ---
 
-# ${METHODOLOGY}
+You are ${METHODOLOGY}. Read these two files in order at session start:
 
-See \`${TARGET}/AGENTS.md\` for full methodology rules. Always-loaded
-profile: \`${TARGET}/agent.md\`."
+1. \`./.eidolons/${EIDOLON_SLUG}/agent.md\` — always-loaded P0 rules.
+2. \`./.eidolons/${EIDOLON_SLUG}/SPEC.md\` — deep on-demand methodology spec.
+
+Skills live at \`./.eidolons/${EIDOLON_SLUG}/skills/<skill>.md\` (load on demand)."
 
   COPILOT_INSTR="---
 applyTo: \"**\"
@@ -395,18 +450,20 @@ description: \"${METHODOLOGY} methodology agent\"
 
 See \`${TARGET}/AGENTS.md\` for full rules."
 
-  # EIIS v1.1 §4.5 — Codex subagent file. Frontmatter contract:
+  # EIIS v1.1 §4.5 + v1.4 §4.2.8 — Codex subagent file. Frontmatter contract:
   # required `name` (slug) + `description`; optional `tools`, `model`.
   # Source: https://developers.openai.com/codex/subagents
   CODEX_AGENT="---
-name: ${EIDOLON_NAME}
+name: ${EIDOLON_SLUG}
 description: ${METHODOLOGY} methodology subagent for Codex.
 ---
 
 # ${METHODOLOGY} — Codex subagent
 
-See \`${TARGET}/agent.md\` for the canonical methodology and
-\`${TARGET}/AGENTS.md\` for the full ruleset."
+Read these two files in order at session start:
+
+1. \`./.eidolons/${EIDOLON_SLUG}/agent.md\` — always-loaded P0 rules.
+2. \`./.eidolons/${EIDOLON_SLUG}/SPEC.md\` — deep on-demand methodology spec."
 
   if hosts_include "claude-code"; then
     write_per_host_dispatch ".claude/agents/${EIDOLON_NAME}.md" "$CLAUDE_AGENT"

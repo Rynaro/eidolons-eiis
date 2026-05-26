@@ -94,17 +94,19 @@ if [ -z "$TARGET_VERSION" ]; then
   TARGET_VERSION="1.0"
 fi
 
-# The checker knows about v1.0 (baseline), v1.1 (Codex addendum), and
-# v1.2 (ECL composition clause). v1.0 Eidolons skip §4.5 codex gates and
-# §4.6 ECL gates; v1.1 Eidolons run codex gates but skip ECL gates; v1.2+
-# Eidolons run both. Any future 1.x version is tolerated and runs v1.2 gates
-# as the closest known set.
+# The checker knows about v1.0 (baseline), v1.1 (Codex addendum),
+# v1.2 (ECL composition clause), v1.3 (canonical SPEC.md + skills dual-write),
+# and v1.4 (canonical install-target inventory + agent-profile + ECL_VERSION
+# MUST + host-vendor body contract + cleanup obligation + agent.md consistency).
+# Any future 1.x version is tolerated and runs v1.4 gates as the closest
+# known set.
 case "$TARGET_VERSION" in
   1.0|1.0.*|1)   : "v1.0 baseline" ;;
   1.1|1.1.*)     : "v1.1 (Codex addendum)" ;;
   1.2|1.2.*)     : "v1.2 (ECL composition clause)" ;;
   1.3|1.3.*)     : "v1.3 (canonical SPEC.md + skills dual-write)" ;;
-  1.*)           : "future 1.x; running v1.3 gates" ;;
+  1.4|1.4.*)     : "v1.4 (canonical inventory whitelist + agent-profile + ECL_VERSION MUST)" ;;
+  1.*)           : "future 1.x; running v1.4 gates" ;;
   *)
     echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x)" >&2
     exit 1
@@ -153,6 +155,8 @@ fi
 . "$LIB_DIR/checks-ecl.sh"
 # shellcheck source=lib/checks-spec-skills.sh
 . "$LIB_DIR/checks-spec-skills.sh"
+# shellcheck source=lib/checks-inventory.sh
+. "$LIB_DIR/checks-inventory.sh"
 
 # -- run checks ------------------------------------------------------------ #
 
@@ -164,6 +168,7 @@ eiis_check_idempotency   "$REPO_DIR_ABS"
 eiis_check_codex         "$REPO_DIR_ABS" "$TARGET_VERSION"
 eiis_check_ecl           "$REPO_DIR_ABS" "$TARGET_VERSION"
 eiis_check_spec_skills   "$REPO_DIR_ABS" "$TARGET_VERSION"
+eiis_check_inventory     "$REPO_DIR_ABS" "$TARGET_VERSION"
 
 # -- summarise ------------------------------------------------------------- #
 

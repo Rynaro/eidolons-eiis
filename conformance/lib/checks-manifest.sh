@@ -120,7 +120,7 @@ eiis_check_manifest() {
           (.path // "") == ""
           or (.sha256 // "") == ""
           or (.role // "") == ""
-          or ((.role // "") as $r | ["entry-point","spec","skill","template","dispatch","manifest","other"] | index($r) | not)
+          or ((.role // "") as $r | ["entry-point","spec","skill","template","dispatch","manifest","agent-profile","ecl-version","other"] | index($r) | not)
         )
       | .path // "<missing>"
     ] | length

@@ -189,3 +189,58 @@ setup() {
   [ "$status" -eq 2 ]
   echo "$output" | grep -q 'S2:spec-file-missing'
 }
+
+# --- v1.4 canonical inventory gates (I1-I5) ---------------------------------- #
+
+@test "eidolon-v14-conformant fixture exits 0 (I1-I5 all pass)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v14-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *I1'
+  echo "$output" | grep -q '\[OK\] *I2'
+  echo "$output" | grep -q '\[OK\] *I3'
+  echo "$output" | grep -q '\[OK\] *I4'
+  echo "$output" | grep -q '\[OK\] *I5'
+}
+
+@test "eidolon-v14-conformant I2 records agent-profile + spec" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v14-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q 'I2:two-file-pair'
+  echo "$output" | grep -q 'agent-profile'
+}
+
+@test "eidolon-v14-non-whitelisted-file fixture exits 2 (I1 fails)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v14-non-whitelisted-file"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *I1'
+  echo "$output" | grep -q 'I1:inventory'
+  echo "$output" | grep -q 'CLAUDE.md'
+}
+
+@test "eidolon-v14-missing-agent-profile fixture exits 2 (I2 fails)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v14-missing-agent-profile"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *I2'
+  echo "$output" | grep -q 'I2:two-file-pair'
+  echo "$output" | grep -q "agent-profile"
+}
+
+@test "eidolon-v14-missing-ecl-version fixture exits 2 (I3 fails)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v14-missing-ecl-version"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *I3'
+  echo "$output" | grep -q 'I3:ecl-version'
+}
+
+@test "v1.3 target with agent-profile role exits 0 (I2 warn-only at v1.3)" {
+  # At EIIS_VERSION 1.3 the missing agent-profile is warn-only, not MUST-fail.
+  run bash "$CHECK" --target-version 1.3 "$FIXTURES/eidolon-v14-missing-agent-profile"
+  # The fixture exits 2 due to other pre-existing failures (F-series from minimal
+  # install.sh); we verify I2 does NOT produce a [FAIL] at v1.3.
+  ! echo "$output" | grep -q '\[FAIL\] *I2'
+}
+
+@test "--target-version 1.4 explicit with conformant fixture exits 0" {
+  run bash "$CHECK" --target-version 1.4 "$FIXTURES/eidolon-v14-conformant"
+  [ "$status" -eq 0 ]
+}

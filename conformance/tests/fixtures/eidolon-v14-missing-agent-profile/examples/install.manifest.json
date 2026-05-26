@@ -1,0 +1,27 @@
+{
+  "eidolon": "missing-agent-profile",
+  "version": "0.4.0",
+  "methodology": "MissingAgentProfile",
+  "installed_at": "2026-05-26T12:00:00Z",
+  "target": "./.eidolons/missing-agent-profile",
+  "hosts_wired": ["claude-code"],
+  "spec_file": ".eidolons/missing-agent-profile/SPEC.md",
+  "files_written": [
+    {
+      "path": "./.eidolons/missing-agent-profile/agent.md",
+      "sha256": "9e4c17cc7971fb87cfa5d5bd5fcc952e575b84e016b1ee534a0f0dc02e254e0c",
+      "role": "entry-point",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/missing-agent-profile/SPEC.md",
+      "sha256": "413ddb149c1f38ec9e1e33233e48ecc2fbcc29aff878c732f1b51fbf9a2ce120",
+      "role": "spec",
+      "mode": "created"
+    }
+  ],
+  "token_budget": {
+    "entry": 42,
+    "working_set_target": 1000
+  }
+}

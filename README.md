@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v1.3](spec/eiis-1.3.md) (also reachable as
+- **Latest stable:** [EIIS v1.4](spec/eiis-1.4.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
@@ -16,9 +16,10 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-1.3.md`](spec/eiis-1.3.md) (latest
+1. **The normative spec** in [`spec/eiis-1.4.md`](spec/eiis-1.4.md) (latest
    stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
-   minor version. Prior versions: [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
+   minor version. Prior versions: [`spec/eiis-1.3.md`](spec/eiis-1.3.md),
+   [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
    [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
    [`spec/eiis-1.0.md`](spec/eiis-1.0.md).
 2. **JSON Schemas** in [`schemas/`](schemas/) for the

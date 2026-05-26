@@ -8,6 +8,72 @@ document level.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-05-26
+
+### Added
+
+- `spec/eiis-1.4.md` — additive minor release over v1.3. v1.0-, v1.1-, v1.2-,
+  and v1.3-conformant Eidolons remain conformant under v1.4 without
+  modification. The new MUSTs bind only when an Eidolon declares
+  `EIIS_VERSION = 1.4`.
+- **§1.9 — Canonical install-target inventory whitelist (v1.4+).** Only files
+  listed in the §1.9.1 table may appear under `<target>/`. Any other path is
+  a v1.4 conformance violation. Whitelist: `agent.md`, `SPEC.md`,
+  `install.manifest.json`, `ECL_VERSION` (conditional), `skills/<skill>.md`,
+  `templates/<artifact>.md`, `schemas/<schema>.json`. Compliance grade:
+  MUST-fail at `EIIS_VERSION ≥ 1.4`; warn-only at `≤ 1.3`.
+- **§1.8.6 — Two-file canonical pair (`agent-profile` role).** `agent.md`
+  MUST appear in `files_written[]` with `role: "agent-profile"` and basename
+  `agent.md`. Exactly one per install. Compliance grade: MUST-fail at
+  `EIIS_VERSION ≥ 1.4`.
+- **§3.7.1 — `ECL_VERSION` install-target copy (v1.4+).** When the source
+  repo declares `ECL_VERSION`, the installer MUST copy it to
+  `<target>/ECL_VERSION` and record it in `files_written[]` with
+  `role: "ecl-version"`. Compliance grade: MUST-fail at `EIIS_VERSION ≥ 1.4`.
+- **§4.2.3–§4.2.5 — Host-vendor agent file body contract (v1.4+).** The
+  claude-code dispatch file MUST reference both `agent.md` (P0) and `SPEC.md`
+  (deep spec); MUST NOT reference legacy spec filenames or subdir-skill paths.
+  §4.2.6 defines the canonical heredoc template. Compliance grade: MUST-fail
+  at `EIIS_VERSION ≥ 1.4`.
+- **§6.X — Install-target cleanup obligation (v1.4+).** After a successful
+  install the installer MUST sweep any file under `<target>/` not in the
+  current `files_written[]` set. Manifest-driven; replaces ad-hoc per-Eidolon
+  `cleanup_legacy_v1_2` lists. Reference implementation in Appendix A.
+- **§6.Y — `agent.md` content consistency (v1.4+).** Every `skills/<skill>.md`
+  reference inside `<target>/agent.md` MUST resolve to a `files_written[]`
+  entry. MUST NOT reference subdir-layout or legacy-spec filenames.
+- **Schema additions** (`schemas/install.manifest.v1.json`):
+  - `role` enum gains `"agent-profile"` and `"ecl-version"`.
+  - New optional top-level field `canonical_inventory_strict` (boolean).
+- **Conformance checker additions** (`conformance/lib/checks-inventory.sh`):
+  - `I1` — Inventory whitelist (MUST-fail ≥ 1.4; warn-only ≤ 1.3).
+  - `I2` — Two-file canonical pair: `agent-profile` + `spec` each exactly
+    once (MUST-fail ≥ 1.4).
+  - `I3` — `ECL_VERSION` target copy when source declares it (MUST-fail ≥ 1.4).
+  - `I4` — Host-vendor refs: `.claude/agents/<n>.md` references both `agent.md`
+    and `SPEC.md`; no legacy names (MUST-fail ≥ 1.4).
+  - `I5` — `agent.md` skill-path consistency (MUST-fail ≥ 1.4).
+- **Skeleton template** (`templates/eidolon-skeleton/`): updated to v1.4
+  patterns — `agent-profile` role, `canonical_inventory_sweep()`, conditional
+  ECL_VERSION copy, §4.2.6 claude-code heredoc template.
+- **New test fixtures**: `eidolon-v14-conformant`, `eidolon-v14-non-whitelisted-file`,
+  `eidolon-v14-missing-agent-profile`, `eidolon-v14-missing-ecl-version`.
+  Seven new bats tests (28–34), all green.
+
+### §1.7 numbering note
+
+v1.3 §1.7 ("MUST NOT collide with EIIS-reserved names") is preserved
+unchanged. The new inventory-whitelist clause is placed at **§1.9** (not §1.7
+as the draft used for readability). This follows OQ-A default guidance in the
+v1.4 spec. The choice is documented at the top of `spec/eiis-1.4.md`.
+
+### Compatibility
+
+v1.0/v1.1/v1.2/v1.3 Eidolons remain conformant under v1.4. All new MUSTs
+(`I1`–`I5`) are gated on `EIIS_VERSION ≥ 1.4`; warn-only at `≤ 1.3`. The
+`M13` role-enum check in `checks-manifest.sh` is updated to accept the new
+`"agent-profile"` and `"ecl-version"` roles without MUST-failing.
+
 ## [1.3.0] — 2026-05-25
 
 ### Added

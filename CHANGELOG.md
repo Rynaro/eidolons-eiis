@@ -8,6 +8,76 @@ document level.
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-07-02
+
+### Added
+
+- `spec/eiis-1.5.md` — additive minor release over v1.4. v1.0-, v1.1-,
+  v1.2-, v1.3-, and v1.4-conformant Eidolons remain conformant under v1.5
+  without modification. The new MUSTs bind only when an Eidolon declares
+  `EIIS_VERSION = 1.5`. Closes the install-contract gap around host
+  session/prompt hooks (e.g. a Claude Code `SessionStart` or
+  `UserPromptSubmit` shim): previously these files had no home in EIIS, so
+  they could not be inventory-tracked, swept on uninstall, or
+  doctor-verified against a manifest.
+- **New `files_written[].role` value `"hook"` (§3.3).** Tags a host-hook
+  shim file written under `<target>/hooks/`.
+- **§3.7.2 — `hook_event` field (v1.5+).** Every `files_written[]` entry
+  with `role: "hook"` MUST carry a `hook_event`: a closed four-member enum
+  (`session-start`, `prompt-submit`, `pre-tool`, `stop`). Schema-optional
+  for every role; conformance-required for `role: "hook"`. Compliance
+  grade: MUST-fail at `EIIS_VERSION ≥ 1.5`; warn-only at `≤ 1.4`.
+- **§1.9.7–§1.9.9 — `hooks/` inventory whitelist (amended §1.9, v1.5+).**
+  `<target>/hooks/<name>.sh` joins the §1.9.1 whitelist table: flat layout
+  only (no subdirectories), `.sh` extension, role `hook`. A v1.4-declared
+  Eidolon shipping a `hooks/` directory still fails `I1` — the path is not
+  whitelisted before v1.5.
+- **§4.7 — Hook wiring conventions (v1.5+).** Splits the hook **shim file**
+  (tracked as `files_written[]` role `hook`) from the **host-config
+  registration** that wires the shim into the host (tracked as
+  `files_written[]` role `dispatch`, under the existing host-wiring/marker
+  rules — no new manifest surface for the registration itself). Explicitly
+  states the security model is unchanged: per-Eidolon installers still
+  write only to the consumer project's working directory; hooks introduce
+  no new write surface (§4.7.4). Hook execution semantics (stdin/stdout
+  contract, exit codes, host hook-payload JSON schema) are declared a
+  non-goal (§4.7.5, §7) — EIIS governs presence/tracking/sweep only.
+- **§6.X.7 — Hook sweep clarification (v1.5+).** States explicitly that the
+  §6.X manifest-driven cleanup sweep removes `role: "hook"` files exactly
+  as it removes files of any other role. Declarative — the generic sweep
+  already covers hook files by construction.
+- **Schema additions** (`schemas/install.manifest.v1.json`):
+  - `role` enum gains `"hook"`.
+  - `files_written[]` items gain optional field `hook_event` (closed enum:
+    `session-start`, `prompt-submit`, `pre-tool`, `stop`).
+  - No schema version bump (`v1` retained) — additive-optional, the same
+    precedent v1.4 set for `agent-profile`/`ecl-version` and
+    `canonical_inventory_strict`.
+- **Conformance checker additions** (`conformance/lib/checks-inventory.sh`):
+  - `I6` — every `role: "hook"` entry has a valid `hook_event`; every file
+    under `<target>/hooks/` is manifest-declared with `role: "hook"` (sweep
+    symmetry). MUST-fail for `EIIS_VERSION ≥ 1.5`; warn-only for `≤ 1.4`.
+  - `I1`'s §1.9.1 whitelist walk gains a `hooks/*.sh` branch, active only
+    when the target declares `EIIS_VERSION ≥ 1.5`.
+  - `checks-manifest.sh`'s `M13` role-enum check is updated to accept
+    `"hook"` without MUST-failing (same treatment v1.4 gave
+    `agent-profile`/`ecl-version`).
+- **New test fixtures**: `eidolon-v15-conformant`,
+  `eidolon-v15-missing-hook-event`, `eidolon-v15-undeclared-hook-file`.
+  Seven new bats tests (35–41), all green — including an explicit
+  sub-1.5 warn-only regression test and an I1-vs-I6 isolation test
+  (undeclared hook file passes the whitelist gate but fails the
+  manifest-sweep-symmetry gate).
+
+### Compatibility
+
+v1.0/v1.1/v1.2/v1.3/v1.4 Eidolons remain conformant under v1.5. The new
+MUST (`I6`) is gated on `EIIS_VERSION ≥ 1.5`; warn-only at `≤ 1.4`. The
+hard-fail promotion target date (§6.4) is **unchanged at 2027-04-24** — it
+is a single global clock shared by every warn-only field since v1.0; v1.5
+adds new rows to the existing table, it does not open a new promotion
+window or introduce a per-version date.
+
 ## [1.4.0] — 2026-05-26
 
 ### Added

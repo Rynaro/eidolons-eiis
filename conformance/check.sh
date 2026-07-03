@@ -96,9 +96,11 @@ fi
 
 # The checker knows about v1.0 (baseline), v1.1 (Codex addendum),
 # v1.2 (ECL composition clause), v1.3 (canonical SPEC.md + skills dual-write),
-# and v1.4 (canonical install-target inventory + agent-profile + ECL_VERSION
-# MUST + host-vendor body contract + cleanup obligation + agent.md consistency).
-# Any future 1.x version is tolerated and runs v1.4 gates as the closest
+# v1.4 (canonical install-target inventory + agent-profile + ECL_VERSION
+# MUST + host-vendor body contract + cleanup obligation + agent.md consistency),
+# and v1.5 (hook role + hook_event field + hooks/ inventory whitelist +
+# hook wiring conventions).
+# Any future 1.x version is tolerated and runs v1.5 gates as the closest
 # known set.
 case "$TARGET_VERSION" in
   1.0|1.0.*|1)   : "v1.0 baseline" ;;
@@ -106,7 +108,8 @@ case "$TARGET_VERSION" in
   1.2|1.2.*)     : "v1.2 (ECL composition clause)" ;;
   1.3|1.3.*)     : "v1.3 (canonical SPEC.md + skills dual-write)" ;;
   1.4|1.4.*)     : "v1.4 (canonical inventory whitelist + agent-profile + ECL_VERSION MUST)" ;;
-  1.*)           : "future 1.x; running v1.4 gates" ;;
+  1.5|1.5.*)     : "v1.5 (hook role + hook_event field + hooks/ whitelist)" ;;
+  1.*)           : "future 1.x; running v1.5 gates" ;;
   *)
     echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x)" >&2
     exit 1

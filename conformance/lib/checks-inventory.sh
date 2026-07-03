@@ -1,11 +1,13 @@
 # shellcheck shell=bash
-# EIIS v1.4 — canonical install-target inventory checks (§1.9, §1.8.6, §3.7.1,
-# §4.2.3-§4.2.5, §6.Y). Sourced by check.sh.
+# EIIS v1.4/v1.5 — canonical install-target inventory checks (§1.9, §1.8.6,
+# §3.7.1, §3.7.2, §4.2.3-§4.2.5, §4.7, §6.Y). Sourced by check.sh.
 #
 # Checks added in v1.4:
 #
 #   I1  Inventory whitelist — every file under <target>/ is in the §1.9.1
 #       whitelist. MUST-fail for EIIS_VERSION >= 1.4; warn-only for <= 1.3.
+#       (v1.5: the whitelist gains a hooks/*.sh branch, active only when
+#       EIIS_VERSION >= 1.5 — see I1's hooks handling below.)
 #
 #   I2  Two-file canonical pair — both agent.md (role agent-profile) and
 #       SPEC.md (role spec) appear exactly once in files_written[].
@@ -23,6 +25,15 @@
 #       reference inside <target>/agent.md resolves to a files_written[]
 #       entry; no subdir paths; no legacy spec basenames.
 #       MUST-fail for EIIS_VERSION >= 1.4; warn-only for <= 1.3.
+#
+# Check added in v1.5 (EIIS v1.5 §3.7.2, §1.9.7-§1.9.9):
+#
+#   I6  Hook role / hook_event consistency —
+#       (a) every files_written[] entry with role "hook" carries a valid
+#           hook_event (session-start|prompt-submit|pre-tool|stop);
+#       (b) every file under <target>/hooks/ is manifest-declared with
+#           role "hook" (sweep symmetry with §6.X.7).
+#       MUST-fail for EIIS_VERSION >= 1.5; warn-only for <= 1.4.
 #
 # Bash 3.2 compatible. Hard dep: jq (already required by check.sh).
 #
@@ -42,6 +53,19 @@ eiis_check_inventory() {
     1.4|1.4.*|1.5|1.5.*|1.6|1.6.*|1.7|1.7.*|1.8|1.8.*|1.9|1.9.*) is_v14_or_later=1 ;;
     1.*) is_v14_or_later=1 ;;
     *) is_v14_or_later=0 ;;
+  esac
+
+  # --------------------------------------------------------------------------- #
+  # Determine whether v1.5+ MUST-fail gating applies (I6; hooks/ in I1's
+  # whitelist). EIIS v1.5 §3.7.2.5, §1.9.9.
+  # --------------------------------------------------------------------------- #
+
+  local is_v15_or_later=0
+  case "$target_version" in
+    1.0|1.0.*|1|1.1|1.1.*|1.2|1.2.*|1.3|1.3.*|1.4|1.4.*) is_v15_or_later=0 ;;
+    1.5|1.5.*|1.6|1.6.*|1.7|1.7.*|1.8|1.8.*|1.9|1.9.*) is_v15_or_later=1 ;;
+    1.*) is_v15_or_later=1 ;;
+    *) is_v15_or_later=0 ;;
   esac
 
   # --------------------------------------------------------------------------- #
@@ -72,6 +96,8 @@ eiis_check_inventory() {
       "I4:host-vendor — host-vendor checks skipped (no manifest found)"
     record "I5" "MUST" "ok" \
       "I5:agent-skill-refs — agent.md skill-ref checks skipped (no manifest found)"
+    record "I6" "MUST" "ok" \
+      "I6:hook-consistency — hook checks skipped (no manifest found)"
     return
   fi
 
@@ -87,6 +113,8 @@ eiis_check_inventory() {
       "I4:host-vendor — skipped (manifest is not valid JSON)"
     record "I5" "MUST" "ok" \
       "I5:agent-skill-refs — skipped (manifest is not valid JSON)"
+    record "I6" "MUST" "ok" \
+      "I6:hook-consistency — skipped (manifest is not valid JSON)"
     return
   fi
 
@@ -175,6 +203,20 @@ eiis_check_inventory() {
             *.json) whitelisted=1 ;;
             *) whitelisted=0 ;;
           esac
+          ;;
+        hooks/*)
+          # hooks/ only entered the whitelist at v1.5 (EIIS v1.5 §1.9.7).
+          # A v1.4-declared Eidolon shipping a hooks/ dir still fails I1 —
+          # the path was not enumerated before v1.5.
+          if [ "$is_v15_or_later" -eq 1 ]; then
+            case "$tail" in
+              */*) whitelisted=0 ;;  # no subdirs under hooks/ (§1.9.8)
+              *.sh) whitelisted=1 ;;
+              *) whitelisted=0 ;;
+            esac
+          else
+            whitelisted=0
+          fi
           ;;
         *)
           whitelisted=0
@@ -393,6 +435,84 @@ eiis_check_inventory() {
             "I4:host-vendor — .claude/agents/${slug}.md: ${i4_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
         fi
       fi
+    fi
+  fi
+
+  # ----------------------------------------------------------------- #
+  # I6 — hook role / hook_event consistency (EIIS v1.5 §3.7.2, §1.9.7-9)
+  # ----------------------------------------------------------------- #
+  # Placed before I5 (not after) because I5 `return`s early when no
+  # agent.md is found at the fixture — I6 must run regardless of that.
+  #
+  # (a) every files_written[] entry with role "hook" MUST carry a valid
+  #     hook_event (session-start|prompt-submit|pre-tool|stop).
+  # (b) every file under <target>/hooks/ MUST be manifest-declared with
+  #     role "hook" (sweep symmetry with §6.X.7).
+
+  local i6_fail=""
+
+  local hook_entries
+  hook_entries="$(jq -c '.files_written // [] | .[] | select(.role == "hook")' "$manifest" 2>/dev/null)"
+
+  if [ -n "$hook_entries" ]; then
+    local h_entry h_path h_event
+    while IFS= read -r h_entry; do
+      [ -z "$h_entry" ] && continue
+      h_path="$(printf '%s' "$h_entry" | jq -r '.path // ""' 2>/dev/null)"
+      h_event="$(printf '%s' "$h_entry" | jq -r '.hook_event // ""' 2>/dev/null)"
+      case "$h_event" in
+        session-start|prompt-submit|pre-tool|stop) : ;;
+        "")
+          i6_fail="${i6_fail}files_written entry '${h_path}' has role 'hook' but is missing hook_event; "
+          ;;
+        *)
+          i6_fail="${i6_fail}files_written entry '${h_path}' has role 'hook' with invalid hook_event='${h_event}'; "
+          ;;
+      esac
+    done <<EOF_HOOK_ENTRIES
+$hook_entries
+EOF_HOOK_ENTRIES
+  fi
+
+  # (b) sweep symmetry: every file under <target>/hooks/ is manifest-declared
+  # with role "hook". Requires the on-disk target (same target_on_disk used
+  # by I1 above).
+  if [ -n "$target_on_disk" ] && [ -d "${target_on_disk}/hooks" ]; then
+    local fw_hook_paths
+    fw_hook_paths="$(jq -r '.files_written // [] | .[] | select(.role == "hook") | .path' "$manifest" 2>/dev/null)"
+
+    while IFS= read -r -d '' hfile; do
+      local hrel="${hfile#${target_on_disk}/}"
+      local hfound=0
+      local hfw_path
+      while IFS= read -r hfw_path; do
+        [ -z "$hfw_path" ] && continue
+        case "$hfw_path" in
+          *"/${hrel}"|"${hrel}")
+            hfound=1
+            break
+            ;;
+        esac
+      done <<EOF_FW_HOOKS
+$fw_hook_paths
+EOF_FW_HOOKS
+      if [ "$hfound" -eq 0 ]; then
+        i6_fail="${i6_fail}file '${hrel}' under <target>/hooks/ is not declared in files_written[] with role 'hook'; "
+      fi
+    done < <(find "${target_on_disk}/hooks" -type f -print0 2>/dev/null)
+  fi
+
+  if [ -z "$i6_fail" ]; then
+    record "I6" "MUST" "ok" \
+      "I6:hook-consistency — role-hook entries have valid hook_event and hooks/ sweep symmetry holds (EIIS v1.5 §3.7.2, §1.9.7)"
+  else
+    if [ "$is_v15_or_later" -eq 1 ]; then
+      record "I6" "MUST" "fail" \
+        "I6:hook-consistency — ${i6_fail}(EIIS v1.5 §3.7.2, §1.9.7)"
+    else
+      record "I6" "MUST" "warn" \
+        "I6:hook-consistency — ${i6_fail}" \
+        "warn-only for EIIS_VERSION ${target_version}; MUST-fail at v1.5+"
     fi
   fi
 

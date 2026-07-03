@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rynaro/eidolons-eiis/blob/v1.0.0/schemas/install.manifest.v1.json",
   "title": "EIIS install.manifest v1",
-  "description": "Written by install.sh into <target>/install.manifest.json after a successful install. Defined by EIIS §3. v1.3 adds optional fields spec_file and skills. v1.4 adds role values 'agent-profile' and 'ecl-version'; adds optional field canonical_inventory_strict.",
+  "description": "Written by install.sh into <target>/install.manifest.json after a successful install. Defined by EIIS §3. v1.3 adds optional fields spec_file and skills. v1.4 adds role values 'agent-profile' and 'ecl-version'; adds optional field canonical_inventory_strict. v1.5 adds role value 'hook'; adds optional files_written[] item field hook_event.",
   "type": "object",
   "required": [
     "eidolon",
@@ -76,13 +76,18 @@
               "manifest",
               "agent-profile",
               "ecl-version",
+              "hook",
               "other"
             ],
-            "description": "Semantic role of this file in the Eidolon install. v1.4 adds 'agent-profile' (agent.md always-loaded P0 profile) and 'ecl-version' (ECL_VERSION install-target copy)."
+            "description": "Semantic role of this file in the Eidolon install. v1.4 adds 'agent-profile' (agent.md always-loaded P0 profile) and 'ecl-version' (ECL_VERSION install-target copy). v1.5 adds 'hook' (a host-hook shim file under <target>/hooks/, EIIS v1.5 §1.9.7/§4.7.1)."
           },
           "mode": {
             "enum": ["created", "appended", "overwritten"],
             "description": "How the file was produced."
+          },
+          "hook_event": {
+            "enum": ["session-start", "prompt-submit", "pre-tool", "stop"],
+            "description": "v1.5+. REQUIRED (conformance-checked, not schema-enforced) when role is 'hook'; the host lifecycle event this shim binds to. Schema-optional for all roles (EIIS v1.5 §3.7.2). Closed enum — extending it requires a spec revision."
           }
         },
         "additionalProperties": false

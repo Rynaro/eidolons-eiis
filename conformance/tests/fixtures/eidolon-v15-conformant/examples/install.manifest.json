@@ -1,0 +1,68 @@
+{
+  "eidolon": "my-eidolon",
+  "version": "0.4.0",
+  "methodology": "MyEidolon",
+  "installed_at": "2026-05-26T12:00:00Z",
+  "target": "./.eidolons/my-eidolon",
+  "hosts_wired": ["claude-code"],
+  "spec_file": ".eidolons/my-eidolon/SPEC.md",
+  "canonical_inventory_strict": true,
+  "files_written": [
+    {
+      "path": "./.eidolons/my-eidolon/agent.md",
+      "sha256": "a2e2864e056b39edecf1c66a5ec625c9af6f1243a5b59c38b6096f7b02b3d775",
+      "role": "agent-profile",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/SPEC.md",
+      "sha256": "413ddb149c1f38ec9e1e33233e48ecc2fbcc29aff878c732f1b51fbf9a2ce120",
+      "role": "spec",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/ECL_VERSION",
+      "sha256": "d526eb4e878a23ef26ae190031b4efd2d58ed66789ac049ea3dbaf74c9df7402",
+      "role": "ecl-version",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/skills/planning.md",
+      "sha256": "b986c0644d3232d8292fb0de22031acf2739d52abce9f89c788d33c7b5125de8",
+      "role": "skill",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/schemas/install.manifest.v1.json",
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "role": "other",
+      "mode": "created"
+    },
+    {
+      "path": ".claude/agents/my-eidolon.md",
+      "sha256": "ee51c23c227dc0b2d3eba8ed5ca949190cc4cdf7bd8454519278f50cd597880a",
+      "role": "dispatch",
+      "mode": "created"
+    },
+    {
+      "path": "./.eidolons/my-eidolon/hooks/session-start.sh",
+      "sha256": "48fbd6dafc396a2fcfe09d719275c598db263106b892bbe98ade8a9c9f3ec939",
+      "role": "hook",
+      "hook_event": "session-start",
+      "mode": "created"
+    }
+  ],
+  "skills": [
+    {
+      "name": "planning",
+      "source_path": ".eidolons/my-eidolon/skills/planning.md",
+      "source_sha256": "b986c0644d3232d8292fb0de22031acf2739d52abce9f89c788d33c7b5125de8",
+      "vendor_path": ".claude/skills/my-eidolon-planning/SKILL.md",
+      "vendor_sha256": "b986c0644d3232d8292fb0de22031acf2739d52abce9f89c788d33c7b5125de8"
+    }
+  ],
+  "token_budget": {
+    "entry": 42,
+    "working_set_target": 1000
+  }
+}

@@ -244,3 +244,62 @@ setup() {
   run bash "$CHECK" --target-version 1.4 "$FIXTURES/eidolon-v14-conformant"
   [ "$status" -eq 0 ]
 }
+
+# --- v1.5 hook role gates (I6) --------------------------------------------- #
+
+@test "eidolon-v15-conformant fixture exits 0 (I1-I6 all pass)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v15-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q '\[OK\] *I1'
+  echo "$output" | grep -q '\[OK\] *I2'
+  echo "$output" | grep -q '\[OK\] *I3'
+  echo "$output" | grep -q '\[OK\] *I4'
+  echo "$output" | grep -q '\[OK\] *I5'
+  echo "$output" | grep -q '\[OK\] *I6'
+}
+
+@test "eidolon-v15-conformant I6 records hook-consistency ok" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v15-conformant"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q 'I6:hook-consistency'
+  echo "$output" | grep -q 'hook_event'
+}
+
+@test "eidolon-v15-missing-hook-event fixture exits 2 (I6 fails)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v15-missing-hook-event"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *I6'
+  echo "$output" | grep -q 'I6:hook-consistency'
+  echo "$output" | grep -q 'missing hook_event'
+}
+
+@test "eidolon-v15-undeclared-hook-file fixture exits 2 (I6 fails, I1 still passes)" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v15-undeclared-hook-file"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *I6'
+  echo "$output" | grep -q 'I6:hook-consistency'
+  echo "$output" | grep -q 'hooks/rogue.sh'
+  # I1 (inventory whitelist) still passes: hooks/*.sh is whitelisted at v1.5;
+  # I6 (manifest sweep-symmetry) is the check that catches the stowaway file.
+  echo "$output" | grep -q 'I1:inventory — all files in target/ are in the'
+}
+
+@test "eidolon-v15-undeclared-hook-file at --target-version 1.4 fails I1 (hooks/ not whitelisted pre-v1.5)" {
+  run bash "$CHECK" --target-version 1.4 "$FIXTURES/eidolon-v15-undeclared-hook-file"
+  echo "$output" | grep -q '\[FAIL\] *I1'
+  echo "$output" | grep -q 'hooks/rogue.sh'
+}
+
+@test "v1.4 target with missing hook_event does not I6-fail (warn-only regression)" {
+  # At EIIS_VERSION 1.4 the hook_event MUST is not yet in force — I6 warns,
+  # it does not [FAIL]. (Other pre-existing gates on this minimal-install.sh
+  # fixture may still fail; we only assert I6's own grade here.)
+  run bash "$CHECK" --target-version 1.4 "$FIXTURES/eidolon-v15-missing-hook-event"
+  ! echo "$output" | grep -q '\[FAIL\] *I6'
+  echo "$output" | grep -q '\[WARN\] *I6'
+}
+
+@test "--target-version 1.5 explicit with conformant fixture exits 0" {
+  run bash "$CHECK" --target-version 1.5 "$FIXTURES/eidolon-v15-conformant"
+  [ "$status" -eq 0 ]
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://github.com/Rynaro/eidolons-eiis/blob/v3.0.0/schemas/package-manifest.v3.json",
+  "schema_version": "3.0",
+  "eiis_version": "3.0.0",
+  "name": "my-eidolon",
+  "version": "0.1.0",
+  "methodology": "MyEidolon",
+  "entrypoints": {"persona":"PERSONA.md","spec":"SPEC.md"},
+  "skills": {}
+}

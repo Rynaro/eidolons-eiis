@@ -6,6 +6,11 @@ JSON Schemas for EIIS-defined artefacts.
 |---|---|---|
 | [`install.manifest.v1.json`](install.manifest.v1.json) | Schema for `<target>/install.manifest.json` written by every Eidolon's `install.sh`. Defined by EIIS v1.0 §3. | v1.0 |
 | [`install.manifest.draft.md`](install.manifest.draft.md) | Field-by-field rationale (informative). | v1.0 |
+| [`package-manifest.v3.json`](package-manifest.v3.json) | Immutable v3 package metadata. | v3.0 |
+| [`install-receipt.v1.json`](install-receipt.v1.json) | Consumer-specific installation and adapter state. | v3.0 |
+
+`install.manifest.v1.json` is frozen for EIIS 1.x compatibility. EIIS v3
+does not extend it.
 
 ## Validating a manifest
 

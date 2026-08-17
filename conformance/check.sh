@@ -139,6 +139,7 @@ record() {
 # -- library load ---------------------------------------------------------- #
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+SCHEMA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/schemas"
 if [ ! -d "$LIB_DIR" ]; then
   echo "Internal error: lib dir not found at $LIB_DIR" >&2
   exit 1
@@ -170,8 +171,6 @@ fi
 case "$TARGET_VERSION" in
   3|3.*)
     eiis_check_flags "$REPO_DIR_ABS"
-    eiis_check_manifest "$REPO_DIR_ABS"
-    eiis_check_idempotency "$REPO_DIR_ABS"
     eiis_check_v3 "$REPO_DIR_ABS" "$TARGET_VERSION"
     ;;
   *)

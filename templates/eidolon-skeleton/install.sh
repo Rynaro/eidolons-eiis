@@ -1,562 +1,115 @@
 #!/usr/bin/env bash
-# {{METHODOLOGY}} installer — EIIS v3.0 conformant
-# Usage: bash install.sh [OPTIONS]
-set -u
-set -o pipefail
+# Declarative EIIS v3 package installer. Host adapters are nexus-owned.
+set -euo pipefail
 
-EIDOLON_NAME="{{EIDOLON_NAME}}"
-EIDOLON_SLUG="{{EIDOLON_SLUG}}"   # lowercase slug, e.g. "my-eidolon" (same as EIDOLON_NAME unless it differs)
-EIDOLON_VERSION="{{VERSION}}"
-METHODOLOGY="{{METHODOLOGY}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# --------------------------------------------------------------------------- #
-# Defaults
-# --------------------------------------------------------------------------- #
-TARGET="./.eidolons/${EIDOLON_NAME}"
-HOSTS="auto"
+PACKAGE_MANIFEST="$SCRIPT_DIR/manifest.json"
+TARGET=""
+HOSTS="raw"
 FORCE=false
 DRY_RUN=false
 NON_INTERACTIVE=false
 MANIFEST_ONLY=false
-SHARED_DISPATCH=false
 
-# --------------------------------------------------------------------------- #
-# Help
-# --------------------------------------------------------------------------- #
 usage() {
-  cat <<EOF
+  cat <<'EOF'
 Usage: bash install.sh [OPTIONS]
-
-Install ${METHODOLOGY} v${EIDOLON_VERSION} into the current consumer project.
-
-Options:
-  --target DIR            Target install dir (default: ${TARGET})
-  --hosts LIST            claude-code,copilot,cursor,opencode,codex,
-                          all,auto,none (default: auto)
-  --shared-dispatch       Compose marker-bounded section in root AGENTS.md /
-                          CLAUDE.md / .github/copilot-instructions.md.
-  --no-shared-dispatch    Skip root composition (default).
-  --force                 Overwrite without prompting.
-  --dry-run               Print actions without writing files.
-  --non-interactive       No prompts; fail on ambiguity.
-  --manifest-only         Only emit install.manifest.json (no file copies).
-  --version               Print Eidolon version and exit 0.
-  -h, --help              Show this help and exit 0.
-
-EIIS v3.0 conformant. See:
-  https://github.com/Rynaro/eidolons-eiis/blob/main/spec/eiis-3.0.md
+  --target DIR
+  --hosts LIST              Accepted for orchestration compatibility; adapters are nexus-owned.
+  --force
+  --non-interactive
+  --dry-run
+  --manifest-only
+  --shared-dispatch         Accepted no-op; root routing is nexus-owned.
+  --no-shared-dispatch      Accepted no-op; root routing is nexus-owned.
+  --version
+  -h, --help
 EOF
 }
 
-# --------------------------------------------------------------------------- #
-# Argument parsing
-# --------------------------------------------------------------------------- #
+pkg_name() { jq -r '.name' "$PACKAGE_MANIFEST"; }
+pkg_version() { jq -r '.version' "$PACKAGE_MANIFEST"; }
+sha256_file() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'
+  else shasum -a 256 "$1" | awk '{print $1}'; fi
+}
+tree_sha256() {
+  local root="$1" listing
+  listing="$(mktemp)"
+  find "$root" -type f ! -name install.receipt.json -print | LC_ALL=C sort | while IFS= read -r file; do
+    printf '%s  %s\n' "$(sha256_file "$file")" "${file#"$root/"}"
+  done > "$listing"
+  sha256_file "$listing"
+  rm -f "$listing"
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --target)               TARGET="$2"; shift 2 ;;
-    --hosts)                HOSTS="$2"; shift 2 ;;
-    --shared-dispatch)      SHARED_DISPATCH=true; shift ;;
-    --no-shared-dispatch)   SHARED_DISPATCH=false; shift ;;
-    --force)                FORCE=true; shift ;;
-    --dry-run)              DRY_RUN=true; shift ;;
-    --non-interactive)      NON_INTERACTIVE=true; shift ;;
-    --manifest-only)        MANIFEST_ONLY=true; shift ;;
-    --version)              echo "${EIDOLON_VERSION}"; exit 0 ;;
-    -h|--help)              usage; exit 0 ;;
-    *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+    --target) TARGET="$2"; shift 2 ;;
+    --hosts) HOSTS="$2"; shift 2 ;;
+    --force) FORCE=true; shift ;;
+    --non-interactive) NON_INTERACTIVE=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --manifest-only) MANIFEST_ONLY=true; shift ;;
+    --shared-dispatch|--no-shared-dispatch) shift ;;
+    --version) pkg_version; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
 
-# --------------------------------------------------------------------------- #
-# Utilities
-# --------------------------------------------------------------------------- #
-log()  { echo "[${EIDOLON_NAME}] $*"; }
-warn() { echo "[${EIDOLON_NAME}] WARN: $*" >&2; }
-
-do_action() {
-  local desc="$1"; shift
-  if [ "$DRY_RUN" = "true" ]; then
-    echo "  [dry-run] ${desc}"
-  else
-    "$@"
-  fi
-}
-
-sha256_file() {
-  local f="$1"
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$f" | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$f" | awk '{print $1}'
-  else
-    echo "0000000000000000000000000000000000000000000000000000000000000000"
-  fi
-}
-
-# --------------------------------------------------------------------------- #
-# Host detection
-# --------------------------------------------------------------------------- #
-detect_hosts() {
-  local detected=""
-  if [ -f "CLAUDE.md" ] || [ -d ".claude" ]; then detected="${detected}claude-code,"; fi
-  if [ -d ".github" ]; then detected="${detected}copilot,"; fi
-  if [ -d ".cursor" ] || [ -f ".cursorrules" ]; then detected="${detected}cursor,"; fi
-  if [ -d ".opencode" ]; then detected="${detected}opencode,"; fi
-  # Codex (EIIS v1.1 §4.5): .codex/ is the definitive Codex-only signal;
-  # AGENTS.md alone (without .github/) also indicates Codex.
-  if [ -d ".codex" ]; then detected="${detected}codex,"; fi
-  if [ -f "AGENTS.md" ] && [ ! -d ".github" ] && [ ! -d ".codex" ]; then
-    detected="${detected}codex,"
-  fi
-  echo "${detected%,}"
-}
-
-if [ "$HOSTS" = "auto" ]; then
-  HOSTS="$(detect_hosts)"
-  if [ -z "$HOSTS" ]; then
-    warn "No host config detected. Using raw install only."
-    HOSTS="raw"
-  fi
-elif [ "$HOSTS" = "all" ]; then
-  HOSTS="claude-code,copilot,cursor,opencode,codex"
+jq empty "$PACKAGE_MANIFEST" >/dev/null
+NAME="$(pkg_name)"
+VERSION="$(pkg_version)"
+[ -n "$TARGET" ] || TARGET="./.eidolons/$NAME"
+MANIFEST_SHA="$(sha256_file "$PACKAGE_MANIFEST")"
+PREVIOUS_INSTALLED_AT=""
+if [ -f "$TARGET/install.receipt.json" ]; then
+  PREVIOUS_INSTALLED_AT="$(jq -r --arg name "$NAME" --arg version "$VERSION" --arg digest "$MANIFEST_SHA" '
+    if .package.name == $name and .package.version == $version and
+       .package.manifest_sha256 == $digest then .installed_at else empty end
+  ' "$TARGET/install.receipt.json" 2>/dev/null || true)"
 fi
 
-hosts_include() {
-  case ",${HOSTS}," in
-    *",$1,"*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+if [ "$DRY_RUN" = true ]; then
+  printf 'install %s@%s -> %s (package only; hosts=%s)\n' "$NAME" "$VERSION" "$TARGET" "$HOSTS"
+  exit 0
+fi
 
-# Validate the host list (--hosts LIST values per EIIS §2.1).
-IFS=',' read -ra _HOST_ARRAY <<< "$HOSTS"
-for _h in "${_HOST_ARRAY[@]}"; do
-  case "$_h" in
-    claude-code|copilot|cursor|opencode|codex|raw|none|"") : ;;
-    *) echo "Invalid --hosts value: $_h" >&2; exit 2 ;;
-  esac
-done
-
-# --------------------------------------------------------------------------- #
-# Idempotency check
-# --------------------------------------------------------------------------- #
-EXISTING_MANIFEST="${TARGET}/install.manifest.json"
-if [ -f "$EXISTING_MANIFEST" ] && [ "$FORCE" != "true" ]; then
-  if [ "$NON_INTERACTIVE" = "true" ]; then
-    echo "Already installed at ${TARGET}. Pass --force to overwrite." >&2
+if [ -e "$TARGET" ] && [ "$FORCE" != true ]; then
+  if [ "$NON_INTERACTIVE" = true ]; then
+    printf 'Already installed at %s; pass --force.\n' "$TARGET" >&2
     exit 3
   fi
-  read -rp "[${EIDOLON_NAME}] Already installed at ${TARGET}. Overwrite? [y/N] " confirm
-  case "$confirm" in
-    y|Y|yes|YES) : ;;
-    *) echo "Aborted."; exit 0 ;;
-  esac
+  printf 'Already installed at %s; pass --force.\n' "$TARGET" >&2
+  exit 3
 fi
 
-# --------------------------------------------------------------------------- #
-# Announce
-# --------------------------------------------------------------------------- #
-log "Installing ${METHODOLOGY} v${EIDOLON_VERSION} -> ${TARGET}"
-log "Hosts: ${HOSTS}"
-[ "$DRY_RUN" = "true" ] && log "Mode: dry-run (no files written)"
-[ "$MANIFEST_ONLY" = "true" ] && log "Mode: manifest-only"
-
-# --------------------------------------------------------------------------- #
-# Directory creation
-# --------------------------------------------------------------------------- #
-FILES_WRITTEN=()
-# FILES_WRITTEN_PATHS tracks target-relative paths for canonical_inventory_sweep.
-FILES_WRITTEN_PATHS=()
-
-maybe_mkdir() {
-  do_action "mkdir -p $1" mkdir -p "$1"
-}
-
-maybe_mkdir "${TARGET}"
-
-# --------------------------------------------------------------------------- #
-# Copy methodology files
-# --------------------------------------------------------------------------- #
-copy_file() {
-  # copy_file <src-relative-to-script> <dst> <role>
-  local src="$1" dst="$2" role="$3"
-  do_action "copy ${src} -> ${dst}" cp "${SCRIPT_DIR}/${src}" "${dst}"
-  if [ "$DRY_RUN" != "true" ] && [ -f "${dst}" ]; then
-    local chk
-    chk="$(sha256_file "${dst}")"
-    FILES_WRITTEN+=("{\"path\":\"${dst}\",\"sha256\":\"${chk}\",\"role\":\"${role}\",\"mode\":\"created\"}")
-    # Track target-relative path for canonical_inventory_sweep (EIIS v1.4 §6.X).
-    local rel="${dst#${TARGET}/}"
-    FILES_WRITTEN_PATHS+=("${rel}")
-  fi
-}
-
-# --------------------------------------------------------------------------- #
-# canonical_inventory_sweep — EIIS v1.4 §6.X
-#
-# Remove every file under <target>/ that is NOT in FILES_WRITTEN_PATHS.
-# Call AFTER all writes, BEFORE writing install.manifest.json.
-# Bash 3.2 compatible: no associative arrays, no readarray.
-# --------------------------------------------------------------------------- #
-canonical_inventory_sweep() {
-  local target="$1"
-  local file_rel found known
-
-  if [ -z "${target}" ] || [ ! -d "${target}" ]; then
-    return 0
-  fi
-
-  find "${target}" -type f -print0 | while IFS= read -r -d '' file; do
-    file_rel="${file#${target}/}"
-    found=0
-    for known in "${FILES_WRITTEN_PATHS[@]}"; do
-      case "${known}" in
-        *"/${file_rel}"|"${file_rel}")
-          found=1
-          break
-          ;;
-      esac
-    done
-    if [ "${found}" -eq 0 ]; then
-      rm -f "${file}"
-      log "sweep: removed non-whitelisted file: ${file}"
+mkdir -p "$TARGET"
+if [ "$MANIFEST_ONLY" != true ]; then
+  cp "$SCRIPT_DIR/PERSONA.md" "$TARGET/PERSONA.md"
+  cp "$SCRIPT_DIR/SPEC.md" "$TARGET/SPEC.md"
+  cp "$SCRIPT_DIR/EIIS_VERSION" "$TARGET/EIIS_VERSION"
+  cp "$PACKAGE_MANIFEST" "$TARGET/manifest.json"
+  for dir in skills hooks shared; do
+    if [ -d "$SCRIPT_DIR/$dir" ]; then
+      rm -rf "$TARGET/$dir"
+      cp -R "$SCRIPT_DIR/$dir" "$TARGET/$dir"
     fi
   done
-
-  find "${target}" -mindepth 1 -type d -empty -delete 2>/dev/null || true
-  return 0
-}
-
-# --------------------------------------------------------------------------- #
-# wire_skill — EIIS v3 canonical skill + discovery-link helper
-#
-# Copies a skill file to:
-#   - source-of-truth: ${TARGET}/skills/<skill>/SKILL.md
-#   - host discovery symlink: .claude/skills/${EIDOLON_SLUG}-<skill>/SKILL.md
-#     (only when claude-code is wired)
-#
-# Bash 3.2 compatible. See EIIS v1.3 Appendix A for the canonical reference.
-# --------------------------------------------------------------------------- #
-wire_skill() {
-  local skill="$1"
-  local src="${SCRIPT_DIR}/skills/${skill}/SKILL.md"
-  local dst_src="${TARGET}/skills/${skill}/SKILL.md"
-  local dst_vendor=".claude/skills/${EIDOLON_SLUG}-${skill}/SKILL.md"
-
-  if [ ! -f "${src}" ]; then
-    echo "ERROR: skill source not found: ${src}" >&2
-    exit 1
-  fi
-
-  # Source-of-truth write (host-independent).
-  do_action "mkdir -p $(dirname "${dst_src}")" mkdir -p "$(dirname "${dst_src}")"
-  do_action "copy skills/${skill}/SKILL.md -> ${dst_src}" cp "${src}" "${dst_src}"
-  if [ "$DRY_RUN" != "true" ] && [ -f "${dst_src}" ]; then
-    local chk_src
-    chk_src="$(sha256_file "${dst_src}")"
-    FILES_WRITTEN+=("{\"path\":\"${dst_src}\",\"sha256\":\"${chk_src}\",\"role\":\"skill\",\"mode\":\"created\"}")
-  fi
-
-  # Vendor discovery link (claude-code host only). Never duplicate the body.
-  if hosts_include "claude-code"; then
-    do_action "mkdir -p $(dirname "${dst_vendor}")" mkdir -p "$(dirname "${dst_vendor}")"
-    local link_target="../../../${TARGET#./}/skills/${skill}/SKILL.md"
-    do_action "link ${dst_vendor} -> ${link_target}" ln -sfn "${link_target}" "${dst_vendor}"
-    if [ "$DRY_RUN" != "true" ] && [ -f "${dst_vendor}" ]; then
-      local chk_vendor
-      chk_vendor="$(sha256_file "${dst_vendor}")"
-      FILES_WRITTEN+=("{\"path\":\"${dst_vendor}\",\"sha256\":\"${chk_vendor}\",\"role\":\"skill\",\"mode\":\"created\"}")
-    fi
-  fi
-}
-
-if [ "$MANIFEST_ONLY" != "true" ]; then
-  # EIIS v3 — PERSONA.md is the sole bounded identity/authority profile.
-  copy_file "PERSONA.md" "${TARGET}/PERSONA.md" "persona"
-
-  # EIIS v1.3 §1.8 / v1.4 §1.9 — canonical full-spec file MUST be named SPEC.md.
-  copy_file "SPEC.md"    "${TARGET}/SPEC.md"    "spec"
-
-  # EIIS v1.4 §3.7.1 — if ECL_VERSION exists at source root, copy it.
-  # Remove this block if your Eidolon does not participate in ECL.
-  if [ -f "${SCRIPT_DIR}/ECL_VERSION" ]; then
-    copy_file "ECL_VERSION" "${TARGET}/ECL_VERSION" "ecl-version"
-  fi
-
-  # EIIS v1.3 §4.2.4 — dual-write each skill. Replace with your skill slugs:
-  # wire_skill "planning"
-  # wire_skill "verification"
-
-  # EIIS v1.4 §6.X — sweep non-whitelisted files from install target.
-  # Call AFTER all writes but BEFORE manifest is written.
-  canonical_inventory_sweep "${TARGET}"
 fi
 
-# --------------------------------------------------------------------------- #
-# Marker-aware shared-dispatch helper (EIIS §4.1).
-#
-# Owns a marker-bounded region in a composable dispatch file. If the region
-# already exists, rewrites its body in place. Otherwise appends a new block.
-# Idempotent by construction.
-# --------------------------------------------------------------------------- #
-upsert_eidolon_block() {
-  # upsert_eidolon_block <dst> <content> <role>
-  local dst="$1" content="$2" role="$3"
-  local start="<!-- eidolon:${EIDOLON_NAME} start -->"
-  local end="<!-- eidolon:${EIDOLON_NAME} end -->"
-
-  if [ "$DRY_RUN" = "true" ]; then
-    local action="append"
-    if [ -f "$dst" ] && grep -qF "$start" "$dst" 2>/dev/null; then
-      action="rewrite"
-    fi
-    echo "  [dry-run] ${action} eidolon:${EIDOLON_NAME} block in ${dst}"
-    return
-  fi
-
-  mkdir -p "$(dirname "$dst")" 2>/dev/null || true
-
-  if [ -L "$dst" ]; then
-    rm -f "$dst"
-  fi
-
-  local content_file mode tmp
-  content_file="$(mktemp)"
-  printf '%s\n' "$content" > "$content_file"
-
-  if [ -f "$dst" ] && grep -qF "$start" "$dst" 2>/dev/null; then
-    mode="rewritten"
-    tmp="$(mktemp)"
-    awk -v start="$start" -v end="$end" -v cf="$content_file" '
-      BEGIN { in_block = 0 }
-      $0 == start {
-        print start
-        while ((getline line < cf) > 0) print line
-        close(cf)
-        in_block = 1
-        next
-      }
-      $0 == end {
-        print end
-        in_block = 0
-        next
-      }
-      !in_block { print }
-    ' "$dst" > "$tmp"
-    mv "$tmp" "$dst"
-  elif [ -f "$dst" ]; then
-    mode="appended"
-    {
-      printf '\n%s\n' "$start"
-      cat "$content_file"
-      printf '%s\n' "$end"
-    } >> "$dst"
-  else
-    mode="created"
-    {
-      printf '%s\n' "$start"
-      cat "$content_file"
-      printf '%s\n' "$end"
-    } > "$dst"
-  fi
-
-  rm -f "$content_file"
-
-  local chk
-  chk="$(sha256_file "$dst")"
-  FILES_WRITTEN+=("{\"path\":\"${dst}\",\"sha256\":\"${chk}\",\"role\":\"${role}\",\"mode\":\"${mode}\"}")
-}
-
-# --------------------------------------------------------------------------- #
-# Shared-dispatch composition
-# --------------------------------------------------------------------------- #
-SHARED_BLOCK="## ${METHODOLOGY} (v${EIDOLON_VERSION})
-
-Persona: \`${TARGET}/PERSONA.md\`
-Spec:    \`${TARGET}/SPEC.md\`
-
-See root \`EIDOLONS.md\` for routing."
-
-if [ "$MANIFEST_ONLY" != "true" ] && [ "$SHARED_DISPATCH" = "true" ]; then
-  upsert_eidolon_block "AGENTS.md" "$SHARED_BLOCK" "dispatch"
-  if hosts_include "claude-code"; then
-    upsert_eidolon_block "CLAUDE.md" "$SHARED_BLOCK" "dispatch"
-  fi
-  if hosts_include "copilot"; then
-    upsert_eidolon_block ".github/copilot-instructions.md" "$SHARED_BLOCK" "dispatch"
-  fi
-fi
-
-# EIIS v1.1 §4.1.0 — root AGENTS.md is co-owned by `copilot` and `codex`.
-# When `codex` is wired, we MUST write the marker block into root AGENTS.md
-# regardless of --shared-dispatch (Codex's primary instruction surface).
-if [ "$MANIFEST_ONLY" != "true" ] && [ "$SHARED_DISPATCH" != "true" ] \
-     && hosts_include "codex"; then
-  upsert_eidolon_block "AGENTS.md" "$SHARED_BLOCK" "dispatch"
-fi
-
-# --------------------------------------------------------------------------- #
-# Per-host dispatch files (filename namespace; EIIS §4.2)
-# --------------------------------------------------------------------------- #
-write_per_host_dispatch() {
-  # write_per_host_dispatch <dst> <content>
-  local dst="$1" content="$2"
-  if [ "$DRY_RUN" = "true" ]; then
-    echo "  [dry-run] write ${dst}"
-    return
-  fi
-  mkdir -p "$(dirname "$dst")"
-  printf '%s\n' "$content" > "$dst"
-  local chk
-  chk="$(sha256_file "$dst")"
-  FILES_WRITTEN+=("{\"path\":\"${dst}\",\"sha256\":\"${chk}\",\"role\":\"dispatch\",\"mode\":\"created\"}")
-}
-
-if [ "$MANIFEST_ONLY" != "true" ]; then
-  # EIIS v1.4 §4.2.3-§4.2.5 — claude-code body contract:
-  # MUST reference both agent.md (P0) and SPEC.md (deep spec).
-  # MUST NOT reference legacy spec filenames or subdir-skill paths.
-  CLAUDE_AGENT="---
-name: ${EIDOLON_SLUG}
-description: ${METHODOLOGY} methodology agent.
-model: sonnet
----
-
-You are ${METHODOLOGY}. Read these two files in order at session start:
-
-1. \`./.eidolons/${EIDOLON_SLUG}/PERSONA.md\` — bounded persona and authority.
-2. \`./.eidolons/${EIDOLON_SLUG}/SPEC.md\` — deep on-demand methodology spec.
-
-Skills live at \`./.eidolons/${EIDOLON_SLUG}/skills/<methodology>/SKILL.md\`."
-
-  COPILOT_INSTR="---
-applyTo: \"**\"
-description: \"${METHODOLOGY} methodology\"
----
-
-See root \`EIDOLONS.md\` and \`${TARGET}/PERSONA.md\`."
-
-  CURSOR_RULE="---
-description: \"${METHODOLOGY} methodology\"
-alwaysApply: false
----
-
-See root \`EIDOLONS.md\` and \`${TARGET}/PERSONA.md\`."
-
-  OPENCODE_AGENT="---
-mode: primary
-description: \"${METHODOLOGY} methodology agent\"
----
-
-See root \`EIDOLONS.md\` and \`${TARGET}/PERSONA.md\`."
-
-  # EIIS v1.1 §4.5 + v1.4 §4.2.8 — Codex subagent file. Frontmatter contract:
-  # required `name` (slug) + `description`; optional `tools`, `model`.
-  # Source: https://developers.openai.com/codex/subagents
-  CODEX_AGENT="---
-name: ${EIDOLON_SLUG}
-description: ${METHODOLOGY} methodology subagent for Codex.
----
-
-# ${METHODOLOGY} — Codex subagent
-
-Read these two files in order at session start:
-
-1. \`./.eidolons/${EIDOLON_SLUG}/PERSONA.md\` — bounded persona and authority.
-2. \`./.eidolons/${EIDOLON_SLUG}/SPEC.md\` — deep on-demand methodology spec."
-
-  if hosts_include "claude-code"; then
-    write_per_host_dispatch ".claude/agents/${EIDOLON_NAME}.md" "$CLAUDE_AGENT"
-  fi
-  if hosts_include "copilot"; then
-    write_per_host_dispatch ".github/instructions/${EIDOLON_NAME}.instructions.md" "$COPILOT_INSTR"
-  fi
-  if hosts_include "cursor"; then
-    write_per_host_dispatch ".cursor/rules/${EIDOLON_NAME}.mdc" "$CURSOR_RULE"
-  fi
-  if hosts_include "opencode"; then
-    write_per_host_dispatch ".opencode/agents/${EIDOLON_NAME}.md" "$OPENCODE_AGENT"
-  fi
-  if hosts_include "codex"; then
-    write_per_host_dispatch ".codex/agents/${EIDOLON_NAME}.md" "$CODEX_AGENT"
-  fi
-fi
-
-# --------------------------------------------------------------------------- #
-# Token budget check (EIIS §2.4 exit code 4)
-# --------------------------------------------------------------------------- #
-AGENT_MD_PATH="${TARGET}/PERSONA.md"
-if [ -f "$AGENT_MD_PATH" ]; then
-  WORD_COUNT=$(wc -w < "$AGENT_MD_PATH")
-elif [ -f "${SCRIPT_DIR}/PERSONA.md" ]; then
-  WORD_COUNT=$(wc -w < "${SCRIPT_DIR}/PERSONA.md")
-else
-  WORD_COUNT=0
-fi
-AGENT_TOKENS=$(awk "BEGIN {printf \"%d\", ${WORD_COUNT}/0.75}")
-
-if [ "$AGENT_TOKENS" -gt 1000 ]; then
-  warn "PERSONA.md exceeds 1000-token budget (estimated ${AGENT_TOKENS} tokens)."
-  if [ "$NON_INTERACTIVE" = "true" ]; then
-    echo "Error: PERSONA.md token budget exceeded in --non-interactive mode." >&2
-    exit 4
-  fi
-fi
-
-# --------------------------------------------------------------------------- #
-# Write install.manifest.json (EIIS §3)
-# --------------------------------------------------------------------------- #
-INSTALLED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-
-# Build hosts_wired JSON array from the comma-separated HOSTS.
-HOSTS_JSON=""
-IFS=',' read -ra _HW <<< "$HOSTS"
-for _h in "${_HW[@]}"; do
-  case "$_h" in
-    "" | "none") continue ;;
-  esac
-  if [ -z "$HOSTS_JSON" ]; then
-    HOSTS_JSON="\"${_h}\""
-  else
-    HOSTS_JSON="${HOSTS_JSON},\"${_h}\""
-  fi
-done
-
-FILES_JSON=""
-if [ "${#FILES_WRITTEN[@]}" -gt 0 ]; then
-  FILES_JSON="$(printf '%s,' "${FILES_WRITTEN[@]}" | sed 's/,$//')"
-fi
-
-MANIFEST_PATH="${TARGET}/install.manifest.json"
-
-if [ "$DRY_RUN" != "true" ]; then
-  mkdir -p "${TARGET}"
-  cat > "${MANIFEST_PATH}" <<MANIFEST_EOF
+TREE_SHA="$(tree_sha256 "$TARGET")"
+INSTALLED_AT="${PREVIOUS_INSTALLED_AT:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+cat > "$TARGET/install.receipt.json" <<EOF
 {
-  "eidolon": "${EIDOLON_NAME}",
+  "schema_version": "1.0",
   "eiis_version": "3.0.0",
-  "version": "${EIDOLON_VERSION}",
-  "methodology": "${METHODOLOGY}",
-  "installed_at": "${INSTALLED_AT}",
-  "target": "${TARGET}",
-  "hosts_wired": [${HOSTS_JSON}],
-  "persona_file": ".eidolons/${EIDOLON_SLUG}/PERSONA.md",
-  "spec_file": ".eidolons/${EIDOLON_SLUG}/SPEC.md",
-  "files_written": [${FILES_JSON}],
-  "token_budget": {
-    "entry": ${AGENT_TOKENS},
-    "working_set_target": 1000
-  }
+  "package": {"name":"$NAME","version":"$VERSION","manifest_sha256":"$MANIFEST_SHA"},
+  "installed_at": "$INSTALLED_AT",
+  "target": "$TARGET",
+  "tree_sha256": "$TREE_SHA",
+  "adapters": []
 }
-MANIFEST_EOF
-  log "Manifest: ${MANIFEST_PATH}"
-fi
-
-# --------------------------------------------------------------------------- #
-# Success banner
-# --------------------------------------------------------------------------- #
-echo ""
-echo "${METHODOLOGY} v${EIDOLON_VERSION} installed -> ${TARGET}"
-echo "PERSONA.md: ${AGENT_TOKENS} tokens (budget: <=1000)"
-echo "Hosts wired: ${HOSTS}"
+EOF
+printf '%s@%s installed -> %s\n' "$NAME" "$VERSION" "$TARGET"

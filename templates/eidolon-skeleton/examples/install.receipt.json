@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "eiis_version": "3.0.0",
+  "package": {
+    "name": "my-eidolon",
+    "version": "0.1.0",
+    "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "installed_at": "2026-08-17T12:00:00Z",
+  "target": ".eidolons/my-eidolon",
+  "tree_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "adapters": []
+}

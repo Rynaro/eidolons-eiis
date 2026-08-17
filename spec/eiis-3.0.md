@@ -15,13 +15,13 @@ The BCP 14 terms **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
 
 ## 2. Canonical repository layout
 
-A v3 repository MUST contain `EIDOLONS.md`, `PERSONA.md`, `SPEC.md`,
+A v3 repository MUST contain `PERSONA.md`, `SPEC.md`, `manifest.json`,
 `README.md`, executable `install.sh`, and `EIIS_VERSION` at its root. It MUST
-NOT contain `agent.md`.
+NOT contain `agent.md` or `EIDOLONS.md`.
 
-`EIDOLONS.md` is the routing and composition entrypoint. `PERSONA.md` is the
-bounded identity, triggers, authority, refusals, and hand-off summary.
-`SPEC.md` is the normative methodology.
+`PERSONA.md` is the bounded identity, triggers, authority, refusals, and
+hand-off summary. `SPEC.md` is the normative methodology. Team routing belongs
+only to the consumer repository's root `EIDOLONS.md` and is nexus-owned.
 
 `AGENTS.md`, `CLAUDE.md`, and equivalent host documents MAY exist. Their
 Eidolons-owned prose MUST refer to root `EIDOLONS.md`; it MUST NOT contain a
@@ -36,7 +36,8 @@ An installed member MUST use:
 ├── EIIS_VERSION
 ├── PERSONA.md
 ├── SPEC.md
-├── install.manifest.json
+├── manifest.json
+├── install.receipt.json
 └── skills/<methodology>/
     ├── SKILL.md
     └── <resources>
@@ -63,14 +64,18 @@ conformance failure even when its digest currently matches.
 Adapters MUST be removable without modifying canonical content. Installers
 MUST NOT rely on symlinks escaping the consumer repository.
 
-## 5. Manifest contract
+## 5. Package manifest and installation receipt
 
-The install manifest MUST contain `eiis_version`, `persona_file`, `spec_file`,
-and exactly one `files_written` entry with role `persona` and one with role
-`spec`. Every installed regular file and every adapter MUST be inventory
-tracked. Each skill entry MUST use a canonical `/SKILL.md` `source_path` and
-MUST declare `adapter_type` when a vendor adapter exists. Resources SHOULD be
-listed in the skill's `resources` array.
+`manifest.json` is immutable package metadata governed by
+`schemas/package-manifest.v3.json`. It declares the persona, specification,
+skill entrypoints, resources, hooks, and security posture. Resources below a
+declared skill directory are transitively owned; they are not repeated in a
+global file inventory.
+
+`install.receipt.json` is generated consumer state governed by
+`schemas/install-receipt.v1.json`. It records the package identity and digest,
+installed tree digest, target, timestamp, and disposable host adapters.
+Package metadata MUST NOT contain installation timestamps or host wiring.
 
 ## 6. Hooks and harness verification
 
@@ -88,14 +93,14 @@ claiming both the v1 duplicated-skill layout and the v3 single-source layout.
 
 ## 8. Conformance gates
 
-- `V3-L1`: canonical source files exist and `agent.md` is absent.
-- `V3-L2`: root host documents refer to `EIDOLONS.md`.
+- `V3-P1`: canonical package files exist and legacy package entrypoints are absent.
+- `V3-M1`: `manifest.json` validates and binds the canonical persona/spec pair.
 - `V3-S1`: source skills use `skills/<methodology>/SKILL.md`.
-- `V3-M1`: manifest binds v3 and the canonical persona/spec pair.
-- `V3-T1`: installed target is self-contained and has no `agent.md`.
-- `V3-A1`: vendor skill adapters are symlinks, never copies.
-- `V3-H1`: hook events and hook inventory retain the v1.5 guarantees.
-- `V3-I1`: installed inventory is manifest-tracked.
+- `V3-R1`: declared resources remain inside the package tree.
+- `V3-H1`: declared hooks are executable and use supported events.
+- `V3-A1`: the package is adapter-free; the nexus owns host discovery.
+- `V3-I1`: installation emits a valid receipt for the installed package.
+- `V3-I2`: repeated installation is byte-idempotent.
 
 All v3 gates are MUST-fail from publication; there is no warning window for
 repositories that explicitly declare the new major version.

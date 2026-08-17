@@ -7,7 +7,8 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 - **Latest stable:** [EIIS v3.0](spec/eiis-3.0.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
-- **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
+- **v3 schemas:** [`package-manifest.v3.json`](schemas/package-manifest.v3.json) and [`install-receipt.v1.json`](schemas/install-receipt.v1.json).
+- **v1 compatibility schema:** [`install.manifest.v1.json`](schemas/install.manifest.v1.json) is frozen.
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
 - **Skeleton template:** [`templates/eidolon-skeleton/`](templates/eidolon-skeleton/).
 - **Implementors:** [IMPLEMENTORS.md](IMPLEMENTORS.md).
@@ -23,8 +24,8 @@ This repo holds:
    [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
    [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
    [`spec/eiis-1.0.md`](spec/eiis-1.0.md).
-2. **JSON Schemas** in [`schemas/`](schemas/) for the
-   `install.manifest.json` contract.
+2. **JSON Schemas** in [`schemas/`](schemas/) for immutable package metadata,
+   generated installation receipts, and frozen EIIS 1.x compatibility.
 3. **A standalone bash conformance checker** in
    [`conformance/`](conformance/) that runs against any Eidolon repo
    without needing the nexus.
@@ -54,9 +55,9 @@ cd my-eidolon
 bash /tmp/eiis/conformance/check.sh .
 ```
 
-If the checker exits 0, your repo satisfies its declared EIIS version's MUSTs. Exit code 4
-means you pass MUSTs but have grandfathered warnings (expected for a fresh
-template until you fill in `files_written`).
+If the checker exits 0, your repo satisfies its declared EIIS version's MUSTs.
+Exit code 4 means a legacy EIIS 1.x package passes MUSTs but has grandfathered
+warnings; EIIS 3.0 has no warning window.
 
 ## Quick start — running the checker against an existing repo
 

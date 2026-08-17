@@ -39,6 +39,9 @@ jobs:
           ver="$(cat EIIS_VERSION | tr -d '[:space:]')"
           test -f "spec/eiis-${ver}.md"
 
+      - name: Machine-readable v3 contract matches published artifacts
+        run: bash conformance/check-contract.sh
+
       - name: Run bats suite
         run: |
           bats conformance/tests/conformance.bats
@@ -72,10 +75,10 @@ jobs:
       - name: "Idempotency: second run produces byte-identical output"
         run: |
           cd /tmp/skel-test
-          find ./.eidolons/test -type f ! -name install.manifest.json \
+          find ./.eidolons/test -type f \
             | sort | xargs sha256sum > /tmp/run1.sums
           bash "$GITHUB_WORKSPACE/templates/eidolon-skeleton/install.sh" \
             --target ./.eidolons/test --hosts none --non-interactive --force
-          find ./.eidolons/test -type f ! -name install.manifest.json \
+          find ./.eidolons/test -type f \
             | sort | xargs sha256sum > /tmp/run2.sums
           diff /tmp/run1.sums /tmp/run2.sums

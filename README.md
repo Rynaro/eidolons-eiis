@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v1.5](spec/eiis-1.5.md) (also reachable as
+- **Latest stable:** [EIIS v3.0](spec/eiis-3.0.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
@@ -16,7 +16,7 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-1.5.md`](spec/eiis-1.5.md) (latest
+1. **The normative spec** in [`spec/eiis-3.0.md`](spec/eiis-3.0.md) (latest
    stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
    minor version. Prior versions: [`spec/eiis-1.4.md`](spec/eiis-1.4.md),
    [`spec/eiis-1.3.md`](spec/eiis-1.3.md),
@@ -54,7 +54,7 @@ cd my-eidolon
 bash /tmp/eiis/conformance/check.sh .
 ```
 
-If the checker exits 0, your repo satisfies EIIS v1.0's MUSTs. Exit code 4
+If the checker exits 0, your repo satisfies its declared EIIS version's MUSTs. Exit code 4
 means you pass MUSTs but have grandfathered warnings (expected for a fresh
 template until you fill in `files_written`).
 
@@ -89,7 +89,10 @@ EIIS uses SemVer at the document level.
 - **v1.3** — additive: canonical full-spec filename (`SPEC.md`, §1.8); skills
   dual-write (flat source-of-truth + Claude Code vendor copy, §4.2.4); new
   manifest fields `spec_file` and `skills[]`; S1/S2/K1-K3 conformance gates
-  (2026-05-25). v1.2 Eidolons remain conformant. This is the current stable.
+  (2026-05-25). v1.2 Eidolons remain conformant.
+- **v3.0** — breaking simplification: one canonical `.eidolons/<agent>/`
+  tree, `PERSONA.md`, directory skills with colocated resources, pointer-only
+  root host docs, and symlink-only vendor skill discovery adapters.
 
 See [§6 of the spec](spec/eiis-1.3.md#6--versioning--compatibility) for the
 full promotion timeline.

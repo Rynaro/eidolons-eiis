@@ -8,10 +8,10 @@ handoffs:
   downstream: []
 ---
 
-# {{METHODOLOGY}} — agent.md
+# {{METHODOLOGY}} — PERSONA.md
 
-You execute the {{METHODOLOGY}} methodology. This file is the always-loaded
-entry point. Keep it under 1000 estimated tokens; offload phase detail to
+You execute the {{METHODOLOGY}} methodology. This file is the canonical
+bounded persona. Keep it under 1000 estimated tokens; offload phase detail to
 `skills/<phase>/SKILL.md`.
 
 ## P0 (non-negotiable)

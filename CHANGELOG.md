@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.0] — 2026-08-17
+
+- Replace duplicated agent and skill surfaces with one canonical installed tree.
+- Introduce `PERSONA.md`, directory skills, colocated resources, and discovery-only adapters.
+- Add strict v3 conformance gates while preserving the complete EIIS 1.x checker path.
+- Extend the manifest schema with v3 contract, persona, resource, and adapter metadata.
+
 All notable changes to the Eidolons Individual Install Standard (EIIS) will
 be documented in this file. The format is based on [Keep a
 Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres

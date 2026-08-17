@@ -28,7 +28,7 @@
 set -u
 # We deliberately do not `set -e`; we want to collect every check.
 
-VERSION="1.0.0"
+VERSION="3.0.0"
 
 # -- option parsing --------------------------------------------------------- #
 
@@ -99,7 +99,7 @@ fi
 # v1.4 (canonical install-target inventory + agent-profile + ECL_VERSION
 # MUST + host-vendor body contract + cleanup obligation + agent.md consistency),
 # and v1.5 (hook role + hook_event field + hooks/ inventory whitelist +
-# hook wiring conventions).
+# hook wiring conventions), and v3.0 (self-contained canonical tree).
 # Any future 1.x version is tolerated and runs v1.5 gates as the closest
 # known set.
 case "$TARGET_VERSION" in
@@ -110,8 +110,10 @@ case "$TARGET_VERSION" in
   1.4|1.4.*)     : "v1.4 (canonical inventory whitelist + agent-profile + ECL_VERSION MUST)" ;;
   1.5|1.5.*)     : "v1.5 (hook role + hook_event field + hooks/ whitelist)" ;;
   1.*)           : "future 1.x; running v1.5 gates" ;;
+  3.0|3.0.*|3)   : "v3.0 (self-contained canonical tree)" ;;
+  3.*)           : "future 3.x; running v3.0 gates" ;;
   *)
-    echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x)" >&2
+    echo "Unsupported --target-version: $TARGET_VERSION (this checker knows 1.x and 3.x)" >&2
     exit 1
     ;;
 esac
@@ -160,18 +162,30 @@ fi
 . "$LIB_DIR/checks-spec-skills.sh"
 # shellcheck source=lib/checks-inventory.sh
 . "$LIB_DIR/checks-inventory.sh"
+# shellcheck source=lib/checks-v3.sh
+. "$LIB_DIR/checks-v3.sh"
 
 # -- run checks ------------------------------------------------------------ #
 
-eiis_check_layout        "$REPO_DIR_ABS"
-eiis_check_flags         "$REPO_DIR_ABS"
-eiis_check_manifest      "$REPO_DIR_ABS"
-eiis_check_markers       "$REPO_DIR_ABS"
-eiis_check_idempotency   "$REPO_DIR_ABS"
-eiis_check_codex         "$REPO_DIR_ABS" "$TARGET_VERSION"
-eiis_check_ecl           "$REPO_DIR_ABS" "$TARGET_VERSION"
-eiis_check_spec_skills   "$REPO_DIR_ABS" "$TARGET_VERSION"
-eiis_check_inventory     "$REPO_DIR_ABS" "$TARGET_VERSION"
+case "$TARGET_VERSION" in
+  3|3.*)
+    eiis_check_flags "$REPO_DIR_ABS"
+    eiis_check_manifest "$REPO_DIR_ABS"
+    eiis_check_idempotency "$REPO_DIR_ABS"
+    eiis_check_v3 "$REPO_DIR_ABS" "$TARGET_VERSION"
+    ;;
+  *)
+    eiis_check_layout        "$REPO_DIR_ABS"
+    eiis_check_flags         "$REPO_DIR_ABS"
+    eiis_check_manifest      "$REPO_DIR_ABS"
+    eiis_check_markers       "$REPO_DIR_ABS"
+    eiis_check_idempotency   "$REPO_DIR_ABS"
+    eiis_check_codex         "$REPO_DIR_ABS" "$TARGET_VERSION"
+    eiis_check_ecl           "$REPO_DIR_ABS" "$TARGET_VERSION"
+    eiis_check_spec_skills   "$REPO_DIR_ABS" "$TARGET_VERSION"
+    eiis_check_inventory     "$REPO_DIR_ABS" "$TARGET_VERSION"
+    ;;
+esac
 
 # -- summarise ------------------------------------------------------------- #
 

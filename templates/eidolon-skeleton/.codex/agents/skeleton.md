@@ -17,9 +17,9 @@ above is REQUIRED by EIIS v1.1 §4.5.
 > update the frontmatter `name:` to match (`<your-slug>`). The filename
 > and the frontmatter slug must agree.
 
-When Codex delegates to this subagent, treat the methodology described
-in `./.eidolons/{{EIDOLON_NAME}}/agent.md` as authoritative. The full
-ruleset lives in `./.eidolons/{{EIDOLON_NAME}}/AGENTS.md`.
+When Codex delegates to this subagent, load the canonical persona at
+`./.eidolons/{{EIDOLON_NAME}}/PERSONA.md` and methodology at
+`./.eidolons/{{EIDOLON_NAME}}/SPEC.md`.
 
 ## P0 (non-negotiable)
 

@@ -1,0 +1,1 @@
+../../../target/skills/verify/SKILL.md

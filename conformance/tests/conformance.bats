@@ -303,3 +303,28 @@ setup() {
   run bash "$CHECK" --target-version 1.5 "$FIXTURES/eidolon-v15-conformant"
   [ "$status" -eq 0 ]
 }
+
+# --- v3 self-contained layout --------------------------------------------- #
+
+@test "eidolon-v30-conformant fixture passes every v3 gate" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-conformant"
+  [ "$status" -eq 0 ]
+  for gate in V3-L1 V3-L2 V3-S1 V3-M1 V3-T1 V3-A1 V3-H1 V3-I1; do
+    echo "$output" | grep -q "\[OK\] *${gate}"
+  done
+}
+
+@test "v3 rejects legacy agent.md and copied vendor skill bodies" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-duplicated"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *V3-L1'
+  echo "$output" | grep -q '\[FAIL\] *V3-A1'
+}
+
+@test "v3 rejects flat skills and missing canonical persona metadata" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-bad-layout"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *V3-S1'
+  echo "$output" | grep -q '\[FAIL\] *V3-M1'
+  echo "$output" | grep -q '\[FAIL\] *V3-H1'
+}

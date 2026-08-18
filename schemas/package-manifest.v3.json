@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rynaro/eidolons-eiis/blob/v3.0.0/schemas/package-manifest.v3.json",
   "title": "EIIS v3 package manifest",
+  "description": "Immutable metadata for a self-contained EIIS v3 Eidolon package.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "eiis_version", "name", "version", "methodology", "entrypoints", "skills", "resources"],

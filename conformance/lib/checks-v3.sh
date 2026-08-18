@@ -61,6 +61,11 @@ eiis_check_v3() {
     case "$resource" in skills/*|shared/*) ;; *) bad="${bad}${resource} escapes canonical resource roots; "; continue ;; esac
     [ -f "$dir/$resource" ] || bad="${bad}${resource} missing; "
   done < <(jq -r '.skills[]?.resources[]?' "$manifest")
+  while IFS= read -r resource; do
+    [ -n "$resource" ] || continue
+    case "/$resource/" in */../*|*/./*) bad="${bad}${resource} escapes the package root; "; continue ;; esac
+    [ -e "$dir/$resource" ] || bad="${bad}${resource} missing; "
+  done < <(jq -r '.resources[]?' "$manifest")
   if [ -z "$bad" ]; then record "V3-R1" "MUST" "ok" "declared resources are package-contained"
   else record "V3-R1" "MUST" "fail" "resource containment" "$bad"; fi
 
@@ -98,6 +103,14 @@ _eiis_check_v3_install() {
     rm -rf "$tmp"
     return
   fi
+  while IFS= read -r resource; do
+    [ -n "$resource" ] || continue
+    if [ ! -e "$target/$resource" ]; then
+      record "V3-I1" "MUST" "fail" "installer omitted declared resource: $resource"
+      rm -rf "$tmp"
+      return
+    fi
+  done < <(jq -r '.resources[]?' "$manifest")
   if ! _v3_validate_json "$receipt" "$SCHEMA_DIR/install-receipt.v1.json"; then
     record "V3-I1" "MUST" "fail" "install.receipt.json validates"
     rm -rf "$tmp"

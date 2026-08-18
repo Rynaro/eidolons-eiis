@@ -97,6 +97,14 @@ if [ "$MANIFEST_ONLY" != true ]; then
       cp -R "$SCRIPT_DIR/$dir" "$TARGET/$dir"
     fi
   done
+  while IFS= read -r resource; do
+    [ -n "$resource" ] || continue
+    case "/$resource/" in */../*|*/./*) printf 'Unsafe package resource: %s\n' "$resource" >&2; exit 2 ;; esac
+    [ -e "$SCRIPT_DIR/$resource" ] || { printf 'Missing package resource: %s\n' "$resource" >&2; exit 2; }
+    mkdir -p "$(dirname "$TARGET/$resource")"
+    rm -rf "$TARGET/$resource"
+    cp -R "$SCRIPT_DIR/$resource" "$TARGET/$resource"
+  done < <(jq -r '.resources[]' "$PACKAGE_MANIFEST")
 fi
 
 TREE_SHA="$(tree_sha256 "$TARGET")"

@@ -5,5 +5,6 @@
   "version": "1.0.0",
   "methodology": "TEST",
   "entrypoints": {"persona":"PERSONA.md","spec":"SPEC.md"},
-  "skills": {"verify":{"entrypoint":"skills/verify/SKILL.md","resources":[]}}
+  "skills": {"verify":{"entrypoint":"skills/verify/SKILL.md","resources":[]}},
+  "resources": []
 }

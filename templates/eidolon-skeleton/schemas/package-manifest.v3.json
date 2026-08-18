@@ -4,7 +4,7 @@
   "title": "EIIS v3 package manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "eiis_version", "name", "version", "methodology", "entrypoints", "skills"],
+  "required": ["schema_version", "eiis_version", "name", "version", "methodology", "entrypoints", "skills", "resources"],
   "properties": {
     "$schema": { "type": "string" },
     "schema_version": { "const": "3.0" },
@@ -37,6 +37,12 @@
           }
         }
       }
+    },
+    "resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Package-relative files or directories installed unchanged beside the canonical entrypoints.",
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$" }
     },
     "hooks": {
       "type": "object",

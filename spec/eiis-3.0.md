@@ -68,9 +68,11 @@ MUST NOT rely on symlinks escaping the consumer repository.
 
 `manifest.json` is immutable package metadata governed by
 `schemas/package-manifest.v3.json`. It declares the persona, specification,
-skill entrypoints, resources, hooks, and security posture. Resources below a
-declared skill directory are transitively owned; they are not repeated in a
-global file inventory.
+skill entrypoints, package resources, hooks, and security posture. Resources
+below a declared skill directory are transitively owned; they are not repeated
+in the package-level inventory. Other runtime files or directories, such as
+commands, schemas, templates, contracts, and binaries, MUST be named once in
+the top-level `resources` array and installed at the same relative path.
 
 `install.receipt.json` is generated consumer state governed by
 `schemas/install-receipt.v1.json`. It records the package identity and digest,

@@ -25,10 +25,10 @@ find . -name '*.bak' -delete
 
 # Verify locally:
 bash /tmp/eiis/conformance/check.sh .
-# Expected: exit 0 (or 4 if you haven't filled in the example manifest yet).
+# Expected: exit 0.
 
 # Initialise git:
-git init && git add . && git commit -m "Initial commit (EIIS v1.0 skeleton)"
+git init && git add . && git commit -m "Initial commit (EIIS v3.0 skeleton)"
 ```
 
 ## What you still need to fill in
@@ -36,9 +36,9 @@ git init && git add . && git commit -m "Initial commit (EIIS v1.0 skeleton)"
 The skeleton ships with these placeholders that `sed` does not handle
 because they appear in prose. Search and replace each:
 
-- `{{ONE_LINE_DESCRIPTION}}` (in `agent.md`, `README.md`)
+- `{{ONE_LINE_DESCRIPTION}}` (in `PERSONA.md`, `README.md`, and `manifest.json`)
 - `{{P0_RULE_1}}`, `{{P0_RULE_2}}`, `{{P0_RULE_3}}`
-- `{{PIPELINE_SUMMARY}}` (in `agent.md`)
+- `{{PIPELINE_SUMMARY}}` (in `PERSONA.md`)
 - `{{CYCLE_DESCRIPTION}}` (in `AGENTS.md`)
 - `{{PHASE_1}}`, `{{PHASE_1_PURPOSE}}`, `{{PHASE_1_SLUG}}`
 - `{{OUTPUT_1}}`, `{{OUTPUT_2}}`

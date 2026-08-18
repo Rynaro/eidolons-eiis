@@ -1,0 +1,11 @@
+{
+  "schema_version": "3.0",
+  "eiis_version": "3.0.0",
+  "name": "test",
+  "version": "1.0.0",
+  "methodology": "TEST",
+  "entrypoints": {"persona":"PERSONA.md","spec":"SPEC.md"},
+  "skills": {"verify":{"entrypoint":"skills/other/SKILL.md","resources":["../escape.md"]}},
+  "resources": ["../escape.md"],
+  "hooks": {"start":{"path":"hooks/start.sh","event":"session-start"}}
+}

@@ -1,5 +1,10 @@
 # EIIS Implementors
 
+> EIIS 3.0 replaces `agent.md` and copied vendor skills with `PERSONA.md`
+> and canonical `skills/<methodology>/SKILL.md` directories. New work starts
+> from `templates/eidolon-skeleton/` and [`spec/eiis-3.0.md`](spec/eiis-3.0.md).
+> Entries declaring EIIS 1.x remain historical compatibility records.
+
 This file lists known-conformant Eidolons. Each entry pins a tag and the
 EIIS version the repo declares via its `EIIS_VERSION` file.
 

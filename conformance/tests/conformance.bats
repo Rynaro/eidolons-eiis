@@ -7,6 +7,11 @@ setup() {
   FIXTURES="$EIIS_ROOT/conformance/tests/fixtures"
 }
 
+@test "machine-readable v3 contract matches schemas, spec, and checker" {
+  run bash "$EIIS_ROOT/conformance/check-contract.sh"
+  [ "$status" -eq 0 ]
+}
+
 # --- fixtures ------------------------------------------------------------- #
 
 @test "eidolon-conformant fixture exits 0" {
@@ -302,4 +307,26 @@ setup() {
 @test "--target-version 1.5 explicit with conformant fixture exits 0" {
   run bash "$CHECK" --target-version 1.5 "$FIXTURES/eidolon-v15-conformant"
   [ "$status" -eq 0 ]
+}
+
+# --- v3 self-contained layout --------------------------------------------- #
+
+@test "eidolon-v30-conformant fixture passes every v3 gate" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-conformant"
+  [ "$status" -eq 0 ]
+  for gate in V3-P1 V3-M1 V3-S1 V3-R1 V3-H1 V3-A1 V3-I1 V3-I2; do
+    echo "$output" | grep -q "\[OK\] *${gate}"
+  done
+}
+
+@test "v3 rejects legacy agent.md in the package" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-duplicated"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *V3-P1'
+}
+
+@test "v3 schema rejects malformed skill discovery and escaping resources" {
+  run bash "$CHECK" "$FIXTURES/eidolon-v30-bad-layout"
+  [ "$status" -eq 2 ]
+  echo "$output" | grep -q '\[FAIL\] *V3-M1'
 }

@@ -62,14 +62,6 @@ jq empty "$PACKAGE_MANIFEST" >/dev/null
 NAME="$(pkg_name)"
 VERSION="$(pkg_version)"
 [ -n "$TARGET" ] || TARGET="./.eidolons/$NAME"
-MANIFEST_SHA="$(sha256_file "$PACKAGE_MANIFEST")"
-PREVIOUS_INSTALLED_AT=""
-if [ -f "$TARGET/install.receipt.json" ]; then
-  PREVIOUS_INSTALLED_AT="$(jq -r --arg name "$NAME" --arg version "$VERSION" --arg digest "$MANIFEST_SHA" '
-    if .package.name == $name and .package.version == $version and
-       .package.manifest_sha256 == $digest then .installed_at else empty end
-  ' "$TARGET/install.receipt.json" 2>/dev/null || true)"
-fi
 
 if [ "$DRY_RUN" = true ]; then
   printf 'install %s@%s -> %s (package only; hosts=%s)\n' "$NAME" "$VERSION" "$TARGET" "$HOSTS"
@@ -107,8 +99,9 @@ if [ "$MANIFEST_ONLY" != true ]; then
   done < <(jq -r '.resources[]' "$PACKAGE_MANIFEST")
 fi
 
+MANIFEST_SHA="$(sha256_file "$PACKAGE_MANIFEST")"
 TREE_SHA="$(tree_sha256 "$TARGET")"
-INSTALLED_AT="${PREVIOUS_INSTALLED_AT:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+INSTALLED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 cat > "$TARGET/install.receipt.json" <<EOF
 {
   "schema_version": "1.0",

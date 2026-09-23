@@ -15,6 +15,33 @@ document level.
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-09-23
+
+### Added
+
+- `spec/eiis-3.1.md` — additive minor over v3.0. Documents nexus-owned host
+  discovery path templates (§4.1), including first-class Cursor surfaces:
+  `.cursor/rules/<name>.mdc`, `.cursor/agents/<name>.md`, and
+  `.cursor/skills/<name>-<skill>/SKILL.md` (frontmatter `name` MUST match the
+  folder basename). Packages remain adapter-free (`V3-A1`).
+- Conformance gate `V3-A2` (presence-gated): when Cursor vendor adapters are
+  present, they MUST use the §4.1 templates and the pointer/symlink contract.
+- `contract/eiis-3.1.yaml` — machine-readable host_adapter_paths for Cursor
+  and sibling hosts.
+
+### Changed
+
+- `EIIS_VERSION` → `3.1.0`; `SPEC.md` → `spec/eiis-3.1.md`.
+- `conformance/check-contract.sh` resolves contract/spec from MAJOR.MINOR.
+- `.github/workflows/release.yml` compares MAJOR.MINOR of tag vs
+  `EIIS_VERSION` (fixes the `3.0.0` vs `3.0` mismatch) and attaches the
+  current spec + contract artifacts.
+
+### Compatibility
+
+Packages declaring `EIIS_VERSION = 3.0.0` remain conformant. §4.1 binds nexus
+adapter renderers; it does not require packages to emit host-vendor files.
+
 ## [1.5.0] — 2026-07-02
 
 ### Added

@@ -24,6 +24,11 @@
 #       entry; no subdir paths; no legacy spec basenames.
 #       MUST-fail for EIIS_VERSION >= 1.4; warn-only for <= 1.3.
 #
+#   I6  Cursor multi-surface (v1.5+) — when .cursor/agents/<slug>.md or
+#       .cursor/skills/<slug>-*/SKILL.md are present, apply the §4.2.9
+#       body / frontmatter-name contract. Presence-gated (packages that
+#       never emit Cursor vendor surfaces are unaffected).
+#
 # Bash 3.2 compatible. Hard dep: jq (already required by check.sh).
 #
 # Public function: eiis_check_inventory <repo-dir-absolute> <target-version>
@@ -42,6 +47,14 @@ eiis_check_inventory() {
     1.4|1.4.*|1.5|1.5.*|1.6|1.6.*|1.7|1.7.*|1.8|1.8.*|1.9|1.9.*) is_v14_or_later=1 ;;
     1.*) is_v14_or_later=1 ;;
     *) is_v14_or_later=0 ;;
+  esac
+
+  local is_v15_or_later=0
+  case "$target_version" in
+    1.0|1.0.*|1|1.1|1.1.*|1.2|1.2.*|1.3|1.3.*|1.4|1.4.*) is_v15_or_later=0 ;;
+    1.5|1.5.*|1.6|1.6.*|1.7|1.7.*|1.8|1.8.*|1.9|1.9.*) is_v15_or_later=1 ;;
+    1.*) is_v15_or_later=1 ;;
+    *) is_v15_or_later=0 ;;
   esac
 
   # --------------------------------------------------------------------------- #
@@ -411,68 +424,128 @@ eiis_check_inventory() {
   if [ -z "$agent_md_path" ]; then
     record "I5" "MUST" "ok" \
       "I5:agent-skill-refs — no agent.md found at fixture; check skipped"
-    return
-  fi
+  else
+    local i5_fail=""
 
-  local i5_fail=""
+    # §6.Y.2: MUST NOT reference skills/<phase>/SKILL.md subdir paths.
+    if grep -qE "skills/[a-z0-9-]+/SKILL\.md" "$agent_md_path" 2>/dev/null; then
+      i5_fail="${i5_fail}agent.md references skills/<phase>/SKILL.md subdir layout (EIIS v1.4 §6.Y.2); "
+    fi
 
-  # §6.Y.2: MUST NOT reference skills/<phase>/SKILL.md subdir paths.
-  if grep -qE "skills/[a-z0-9-]+/SKILL\.md" "$agent_md_path" 2>/dev/null; then
-    i5_fail="${i5_fail}agent.md references skills/<phase>/SKILL.md subdir layout (EIIS v1.4 §6.Y.2); "
-  fi
+    # §6.Y.3: MUST NOT reference legacy spec basename (<slug>.md) case-insensitively.
+    if [ -n "$slug" ]; then
+      if grep -qiE "(^|[^a-zA-Z0-9-])${slug}\.md([^a-zA-Z0-9-]|$)" "$agent_md_path" 2>/dev/null; then
+        i5_fail="${i5_fail}agent.md references legacy spec filename (${slug}.md) (EIIS v1.4 §6.Y.3); "
+      fi
+    fi
 
-  # §6.Y.3: MUST NOT reference legacy spec basename (<slug>.md) case-insensitively.
-  if [ -n "$slug" ]; then
-    if grep -qiE "(^|[^a-zA-Z0-9-])${slug}\.md([^a-zA-Z0-9-]|$)" "$agent_md_path" 2>/dev/null; then
-      i5_fail="${i5_fail}agent.md references legacy spec filename (${slug}.md) (EIIS v1.4 §6.Y.3); "
+    # §6.Y.1: every skills/<skill>.md reference must resolve to a files_written[] entry.
+    local skill_refs
+    skill_refs="$(grep -oE 'skills/[a-z0-9-]+\.md' "$agent_md_path" 2>/dev/null | sort -u)"
+
+    if [ -n "$skill_refs" ]; then
+      local fw_skills
+      fw_skills="$(jq -r '.files_written // [] | .[] | select(.role == "skill") | .path' "$manifest" 2>/dev/null)"
+
+      local ref
+      while IFS= read -r ref; do
+        [ -z "$ref" ] && continue
+        local skill_name="${ref#skills/}"
+        local found=0
+        local fw_path
+        while IFS= read -r fw_path; do
+          case "$fw_path" in
+            */skills/"$skill_name"|skills/"$skill_name")
+              found=1
+              break
+              ;;
+          esac
+        done <<EOF_FW
+$fw_skills
+EOF_FW
+        if [ "$found" -eq 0 ]; then
+          i5_fail="${i5_fail}agent.md references '${ref}' but no matching skill in files_written[] (EIIS v1.4 §6.Y.1); "
+        fi
+      done <<EOF_REFS
+$skill_refs
+EOF_REFS
+    fi
+
+    if [ -z "$i5_fail" ]; then
+      record "I5" "MUST" "ok" \
+        "I5:agent-skill-refs — agent.md skill references are consistent with files_written[] (EIIS v1.4 §6.Y)"
+    else
+      if [ "$is_v14_or_later" -eq 1 ]; then
+        record "I5" "MUST" "fail" \
+          "I5:agent-skill-refs — ${i5_fail}"
+      else
+        record "I5" "MUST" "ok" \
+          "I5:agent-skill-refs — ${i5_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
+      fi
     fi
   fi
 
-  # §6.Y.1: every skills/<skill>.md reference must resolve to a files_written[] entry.
-  # Extract flat skill references (skills/<name>.md — no slash in name part).
-  local skill_refs
-  skill_refs="$(grep -oE 'skills/[a-z0-9-]+\.md' "$agent_md_path" 2>/dev/null | sort -u)"
+  # ----------------------------------------------------------------- #
+  # I6 — Cursor multi-surface (§4.2.9, v1.5+)
+  # ----------------------------------------------------------------- #
+  # Presence-gated: only validates surfaces that exist on disk.
 
-  if [ -n "$skill_refs" ]; then
-    # Build a list of skill paths from files_written[].
-    local fw_skills
-    fw_skills="$(jq -r '.files_written // [] | .[] | select(.role == "skill") | .path' "$manifest" 2>/dev/null)"
-
-    local ref
-    while IFS= read -r ref; do
-      [ -z "$ref" ] && continue
-      local skill_name="${ref#skills/}"
-      # Check if any files_written path ends with skills/<skill_name>.
-      local found=0
-      local fw_path
-      while IFS= read -r fw_path; do
-        case "$fw_path" in
-          */skills/"$skill_name"|skills/"$skill_name")
-            found=1
-            break
-            ;;
-        esac
-      done <<EOF_FW
-$fw_skills
-EOF_FW
-      if [ "$found" -eq 0 ]; then
-        i5_fail="${i5_fail}agent.md references '${ref}' but no matching skill in files_written[] (EIIS v1.4 §6.Y.1); "
-      fi
-    done <<EOF_REFS
-$skill_refs
-EOF_REFS
+  if [ -z "$slug" ]; then
+    record "I6" "MUST" "ok" \
+      "I6:cursor-surfaces — skipped (could not determine eidolon slug from manifest)"
+    return 0
   fi
 
-  if [ -z "$i5_fail" ]; then
-    record "I5" "MUST" "ok" \
-      "I5:agent-skill-refs — agent.md skill references are consistent with files_written[] (EIIS v1.4 §6.Y)"
+  local i6_fail=""
+  local cursor_agent="${fixture_root}/.cursor/agents/${slug}.md"
+  local cursor_rule="${fixture_root}/.cursor/rules/${slug}.mdc"
+
+  if [ -f "$cursor_agent" ]; then
+    local persona_hit=0
+    if grep -qF ".eidolons/${slug}/agent.md" "$cursor_agent" 2>/dev/null \
+      || grep -qF ".eidolons/${slug}/PERSONA.md" "$cursor_agent" 2>/dev/null; then
+      persona_hit=1
+    fi
+    if [ "$persona_hit" -eq 0 ]; then
+      i6_fail="${i6_fail}.cursor/agents/${slug}.md missing agent.md/PERSONA.md reference; "
+    fi
+    if ! grep -qF ".eidolons/${slug}/SPEC.md" "$cursor_agent" 2>/dev/null; then
+      i6_fail="${i6_fail}.cursor/agents/${slug}.md missing SPEC.md reference; "
+    fi
+  fi
+
+  local skill_file folder
+  for skill_file in "${fixture_root}"/.cursor/skills/"${slug}"-*/SKILL.md; do
+    [ -e "$skill_file" ] || [ -L "$skill_file" ] || continue
+    folder="$(basename "$(dirname "$skill_file")")"
+    if ! grep -qE "^name:[[:space:]]*${folder}$" "$skill_file" 2>/dev/null; then
+      i6_fail="${i6_fail}${skill_file#$fixture_root/}: frontmatter name must equal folder '${folder}'; "
+    fi
+  done
+
+  local any_cursor=0
+  [ -f "$cursor_agent" ] && any_cursor=1
+  [ -f "$cursor_rule" ] && any_cursor=1
+  for skill_file in "${fixture_root}"/.cursor/skills/"${slug}"-*/SKILL.md; do
+    if [ -e "$skill_file" ] || [ -L "$skill_file" ]; then
+      any_cursor=1
+      break
+    fi
+  done
+
+  if [ "$any_cursor" -eq 0 ]; then
+    record "I6" "MUST" "ok" \
+      "I6:cursor-surfaces — no Cursor vendor surfaces present; check skipped"
+  elif [ -z "$i6_fail" ]; then
+    record "I6" "MUST" "ok" \
+      "I6:cursor-surfaces — present Cursor vendor surfaces satisfy §4.2.9"
   else
-    if [ "$is_v14_or_later" -eq 1 ]; then
-      record "I5" "MUST" "fail" \
-        "I5:agent-skill-refs — ${i5_fail}"
+    if [ "$is_v15_or_later" -eq 1 ]; then
+      record "I6" "MUST" "fail" \
+        "I6:cursor-surfaces — ${i6_fail}(EIIS v1.5 §4.2.9)"
     else
-      record "I5" "MUST" "ok" \
-        "I5:agent-skill-refs — ${i5_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.4+)"
+      record "I6" "MUST" "ok" \
+        "I6:cursor-surfaces — ${i6_fail}(not required at EIIS_VERSION ${target_version}; MUST-fail at v1.5+)"
     fi
   fi
 }

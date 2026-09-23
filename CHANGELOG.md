@@ -8,6 +8,42 @@ document level.
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-09-22
+
+### Added
+
+- `spec/eiis-1.5.md` — additive minor release over v1.4. Closes the §4.2.8 /
+  §7 deferred follow-up for Cursor host-vendor path details.
+- **§4.2.9 — Cursor multi-surface vendor paths (v1.5+).** When Cursor vendor
+  discovery surfaces are emitted, they MUST use:
+  - `.cursor/rules/<name>.mdc` (always-available Agent context; v1.4 baseline)
+  - `.cursor/agents/<name>.md` (Task / subagent discovery)
+  - `.cursor/skills/<name>-<skill>/SKILL.md` (project Skills; frontmatter
+    `name` MUST equal the folder basename)
+  Body contract is the §4.2.3–§4.2.5 analogue (`agent.md`/`PERSONA.md` +
+  `SPEC.md`, no legacy basenames). A nexus-owned adapter renderer MAY satisfy
+  the obligation; packages that only write `.cursor/rules/` at
+  `EIIS_VERSION ≤ 1.4` remain conformant.
+- **Conformance check `I6`** (`conformance/lib/checks-inventory.sh`):
+  presence-gated validation of Cursor agents/skills surfaces. MUST-fail at
+  `EIIS_VERSION ≥ 1.5` when present surfaces violate §4.2.9; skipped when no
+  Cursor vendor files exist.
+
+### Changed
+
+- `SPEC.md` symlink retargeted to `spec/eiis-1.5.md`.
+- `EIIS_VERSION` bumped to `1.5`.
+- §4.2 table lists Cursor rules / agents / skills and an explicit claude-code
+  skills row.
+- §7 non-goals: Cursor cross-host deferral removed; clarified that per-Eidolon
+  installers are not required to emit Cursor agents/skills themselves.
+
+### Compatibility
+
+v1.0–v1.4 Eidolons remain conformant under v1.5. `I6` is presence-gated and
+version-gated (`≥ 1.5`); existing fixtures that never emit Cursor agents or
+skills are unchanged.
+
 ## [1.4.0] — 2026-05-26
 
 ### Added

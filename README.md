@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v1.4](spec/eiis-1.4.md) (also reachable as
+- **Latest stable:** [EIIS v1.5](spec/eiis-1.5.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **Manifest schema:** [`schemas/install.manifest.v1.json`](schemas/install.manifest.v1.json).
 - **Conformance checker:** [`conformance/check.sh`](conformance/check.sh).
@@ -16,9 +16,10 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-1.4.md`](spec/eiis-1.4.md) (latest
+1. **The normative spec** in [`spec/eiis-1.5.md`](spec/eiis-1.5.md) (latest
    stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
-   minor version. Prior versions: [`spec/eiis-1.3.md`](spec/eiis-1.3.md),
+   minor version. Prior versions: [`spec/eiis-1.4.md`](spec/eiis-1.4.md),
+   [`spec/eiis-1.3.md`](spec/eiis-1.3.md),
    [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
    [`spec/eiis-1.1.md`](spec/eiis-1.1.md),
    [`spec/eiis-1.0.md`](spec/eiis-1.0.md).
@@ -88,9 +89,15 @@ EIIS uses SemVer at the document level.
 - **v1.3** — additive: canonical full-spec filename (`SPEC.md`, §1.8); skills
   dual-write (flat source-of-truth + Claude Code vendor copy, §4.2.4); new
   manifest fields `spec_file` and `skills[]`; S1/S2/K1-K3 conformance gates
-  (2026-05-25). v1.2 Eidolons remain conformant. This is the current stable.
+  (2026-05-25). v1.2 Eidolons remain conformant.
+- **v1.4** — additive: install-target inventory whitelist, two-file canonical
+  pair, `ECL_VERSION` target copy, host-vendor body contract, cleanup
+  obligation (2026-05-26). v1.3 Eidolons remain conformant.
+- **v1.5** — additive: Cursor multi-surface vendor paths (§4.2.9 — rules +
+  agents + skills) and presence-gated conformance check `I6` (2026-09-22).
+  v1.4 Eidolons remain conformant. This is the current stable.
 
-See [§6 of the spec](spec/eiis-1.3.md#6--versioning--compatibility) for the
+See [§6 of the spec](spec/eiis-1.5.md#6--versioning--compatibility) for the
 full promotion timeline.
 
 ## Relationship to other repos

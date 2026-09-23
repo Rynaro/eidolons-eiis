@@ -5,7 +5,7 @@ plain-text standard plus a standalone bash conformance checker. The Eidolons
 nexus (`Rynaro/eidolons`) and every shipped Eidolon (ATLAS, SPECTRA, APIVR-Δ,
 IDG, FORGE, VIGIL) all consume this contract.
 
-- **Latest stable:** [EIIS v3.0](spec/eiis-3.0.md) (also reachable as
+- **Latest stable:** [EIIS v3.1](spec/eiis-3.1.md) (also reachable as
   [`SPEC.md`](SPEC.md), the symlink to the latest stable spec).
 - **v3 schemas:** [`package-manifest.v3.json`](schemas/package-manifest.v3.json) and [`install-receipt.v1.json`](schemas/install-receipt.v1.json).
 - **v1 compatibility schema:** [`install.manifest.v1.json`](schemas/install.manifest.v1.json) is frozen.
@@ -17,8 +17,8 @@ IDG, FORGE, VIGIL) all consume this contract.
 
 This repo holds:
 
-1. **The normative spec** in [`spec/eiis-3.0.md`](spec/eiis-3.0.md) (latest
-   stable). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
+1. **The normative spec** in [`spec/eiis-3.1.md`](spec/eiis-3.1.md) (latest
+   stable). Prior: [`spec/eiis-3.0.md`](spec/eiis-3.0.md). RFC 8174 (BCP 14) keywords; numbered §1–§7 sections; one file per
    minor version. Prior versions: [`spec/eiis-1.4.md`](spec/eiis-1.4.md),
    [`spec/eiis-1.3.md`](spec/eiis-1.3.md),
    [`spec/eiis-1.2.md`](spec/eiis-1.2.md),
@@ -91,6 +91,9 @@ EIIS uses SemVer at the document level.
   dual-write (flat source-of-truth + Claude Code vendor copy, §4.2.4); new
   manifest fields `spec_file` and `skills[]`; S1/S2/K1-K3 conformance gates
   (2026-05-25). v1.2 Eidolons remain conformant.
+- **v3.1** — additive: nexus-owned host adapter path templates (§4.1),
+  including first-class Cursor rules/agents/skills (2026-09-23).
+  v3.0 packages remain conformant. This is the current stable.
 - **v3.0** — breaking simplification: one canonical `.eidolons/<agent>/`
   tree, `PERSONA.md`, directory skills with colocated resources, pointer-only
   root host docs, and symlink-only vendor skill discovery adapters.
